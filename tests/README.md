@@ -59,6 +59,9 @@ Deviations from the TEA scaffold, each because the surface does not exist here:
   base URL.
 - `log` is imported from `@seontechnologies/playwright-utils/log`. The package root import fails to
   load under `"type": "module"` with Playwright 1.64.1 (`request for './index.js' is not in cache`).
+- TypeScript stays on 6.x. playwright-utils burn-in analyzes imports through `madge`, whose
+  `@typescript-eslint/typescript-estree` needs the TypeScript JS API that TypeScript 7 removed
+  (`Cannot read properties of undefined (reading 'BarBarToken')`).
 
 ## Best practices that still apply
 
