@@ -24,13 +24,13 @@ From the median duration of each test over the native runs: 420.9 s of test time
 
 ## Runs
 
-Completion runs from the first job start to the last job end. Queue is the longest wait of a shard job between creation and start. Machine time is the sum of the shard job durations.
+Completion runs from the first job start to the last job end. Queue is the longest wait of a shard job between creation and start. Machine time is the sum of the shard job durations. Overlapping runs are other runs of the repository whose jobs ran during this run, sharing the runner pool.
 
-| Arm | Shards | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time |
-| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: |
-| native | 4 | [38973296352](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38973296352) | `5bc7832` | 68.8 / 177.0 / 128.0 / 65.6 | 84 / 191 / 145 / 77 | 212.0 s | 3.0 s | 497.0 s |
-| native | 4 | [38974030426](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38974030426) | `5bc7832` | 68.4 / 177.8 / 128.0 / 65.1 | 77 / 190 / 145 / 80 | 213.0 s | 2.0 s | 492.0 s |
-| native | 4 | [38974811974](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38974811974) | `5bc7832` | 69.0 / 177.3 / 128.0 / 65.1 | 82 / 188 / 139 / 81 | 220.0 s | 2.0 s | 490.0 s |
-| native | 8 | [38973698179](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38973698179) | `5bc7832` | 31.1 / 42.6 / 147.6 / 34.0 / 27.6 / 104.5 / 35.7 / 34.3 | 43 / 56 / 158 / 61 / 44 / 119 / 49 / 50 | 182.0 s | 3.0 s | 580.0 s |
-| native | 8 | [38974426524](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38974426524) | `5bc7832` | 30.4 / 42.3 / 147.7 / 33.3 / 27.0 / 104.6 / 35.5 / 33.7 | 44 / 55 / 162 / 45 / 40 / 121 / 50 / 43 | 190.0 s | 2.0 s | 560.0 s |
-| native | 8 | [38975244150](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38975244150) | `5bc7832` | 31.1 / 41.7 / 147.5 / 33.9 / 27.5 / 104.5 / 35.3 / 34.3 | 46 / 53 / 159 / 45 / 44 / 123 / 47 / 46 | 179.0 s | 2.0 s | 563.0 s |
+| Arm | Shards | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time | Overlapping runs |
+| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| native | 4 | [38973296352](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38973296352) | `5bc7832` | 68.8 / 177.0 / 128.0 / 65.6 | 84 / 191 / 145 / 77 | 212.0 s | 3.0 s | 497.0 s | 38973274856 (test.yml, push) |
+| native | 4 | [38974030426](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38974030426) | `5bc7832` | 68.4 / 177.8 / 128.0 / 65.1 | 77 / 190 / 145 / 80 | 213.0 s | 2.0 s | 492.0 s | none |
+| native | 4 | [38974811974](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38974811974) | `5bc7832` | 69.0 / 177.3 / 128.0 / 65.1 | 82 / 188 / 139 / 81 | 220.0 s | 2.0 s | 490.0 s | none |
+| native | 8 | [38973698179](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38973698179) | `5bc7832` | 31.1 / 42.6 / 147.6 / 34.0 / 27.6 / 104.5 / 35.7 / 34.3 | 43 / 56 / 158 / 61 / 44 / 119 / 49 / 50 | 182.0 s | 3.0 s | 580.0 s | none |
+| native | 8 | [38974426524](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38974426524) | `5bc7832` | 30.4 / 42.3 / 147.7 / 33.3 / 27.0 / 104.6 / 35.5 / 33.7 | 44 / 55 / 162 / 45 / 40 / 121 / 50 / 43 | 190.0 s | 2.0 s | 560.0 s | none |
+| native | 8 | [38975244150](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38975244150) | `5bc7832` | 31.1 / 41.7 / 147.5 / 33.9 / 27.5 / 104.5 / 35.3 / 34.3 | 46 / 53 / 159 / 45 / 44 / 123 / 47 / 46 | 179.0 s | 2.0 s | 563.0 s | none |

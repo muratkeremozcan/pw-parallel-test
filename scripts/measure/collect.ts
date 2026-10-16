@@ -46,6 +46,8 @@ export type RunRecord = {
     headBranch: string;
     headSha: string;
     suiteFingerprint: string;
+    /** Other runs of the repository whose window overlapped this run's jobs, sharing runners. */
+    overlappingRuns: { id: number; workflowPath: string; event: string }[];
     conclusion: string | null;
     createdAt: string;
     runStartedAt: string;
@@ -60,10 +62,12 @@ const gh = (args: string[]): Buffer => execFileSync('gh', args, { maxBuffer: MAX
 const ghJson = <T>(endpoint: string): T => JSON.parse(gh(['api', endpoint]).toString('utf8')) as T;
 
 /** Every item of a paginated list endpoint; the count must match what the API reports. */
-const paginate = <T>(endpoint: string, key: string): T[] => {
+const paginate = <T>(endpoint: string, key: string, query = ''): T[] => {
   const items: T[] = [];
   for (let page = 1; ; page += 1) {
-    const body = ghJson<Record<string, unknown>>(`${endpoint}?per_page=${PAGE_SIZE}&page=${page}`);
+    const body = ghJson<Record<string, unknown>>(
+      `${endpoint}?${query ? `${query}&` : ''}per_page=${PAGE_SIZE}&page=${page}`,
+    );
     const batch = body[key] as T[];
     const total = body.total_count as number;
     items.push(...batch);
@@ -119,6 +123,32 @@ const suiteFingerprint = (sha: string): string => {
     if (!entry) throw new Error(`${path} is missing at ${sha}`);
     return `${path}@${entry.sha.slice(0, 12)}`;
   }).join(' ');
+};
+
+/** Runs of any workflow whose jobs overlap the window from this run's first job start to last end. */
+const overlappingRuns = (runId: number, jobs: JobRecord[]): RunRecord['run']['overlappingRuns'] => {
+  const start = Math.min(...jobs.map((job) => Date.parse(job.startedAt)));
+  const end = Math.max(...jobs.map((job) => Date.parse(job.completedAt)));
+  const since = new Date(start - 6 * 60 * 60 * 1000).toISOString();
+  const candidates = paginate<Record<string, any>>(
+    `repos/${REPO}/actions/runs`,
+    'workflow_runs',
+    `created=%3E%3D${since}`,
+  ).filter((other) => other.id !== runId);
+  return candidates
+    .filter((other) => {
+      const otherJobs = paginate<Record<string, any>>(
+        `repos/${REPO}/actions/runs/${other.id}/jobs`,
+        'jobs',
+      ).filter((job) => job.started_at);
+      // A job still running when this collects counts as running until now.
+      return otherJobs.some(
+        (job) =>
+          Date.parse(job.started_at) < end &&
+          (job.completed_at ? Date.parse(job.completed_at) : Date.now()) > start,
+      );
+    })
+    .map((other) => ({ id: other.id, workflowPath: other.path, event: other.event }));
 };
 
 export const collect = (runId: number, mode: string): RunRecord => {
@@ -178,6 +208,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
       headBranch: run.head_branch,
       headSha: run.head_sha,
       suiteFingerprint: suiteFingerprint(run.head_sha),
+      overlappingRuns: overlappingRuns(run.id, jobs),
       conclusion: run.conclusion,
       createdAt: run.created_at,
       runStartedAt: run.run_started_at,
