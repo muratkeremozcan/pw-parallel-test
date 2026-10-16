@@ -77,9 +77,13 @@ Deviations from the TEA scaffold, each because the surface does not exist here:
 1. Lint (`npm run lint`).
 2. Four native shards, each uploading a blob report even on failure.
 3. A merge job that merges the blobs into HTML, JSON and JUnit, then fails unless every discovered
-   test ran (`scripts/check-test-count.ts`).
-4. Burn-in on pull requests through playwright-utils `runBurnIn`: half of the changed specs, three
-   repeats, no retries. A weekly schedule burns in the whole suite.
+   test ran exactly once, and each setup test once per shard (`scripts/check-test-count.ts`).
+4. Burn-in on pull requests through `scripts/burn-in-changed.ts`: three repeats, no retries. When
+   only spec files changed, playwright-utils `runBurnIn` picks them. When anything a spec
+   imports or runs under changed, the whole suite burns in, because playwright-utils 4.4.1 selects a
+   spec only when that spec file itself changed. A changed file name outside `[A-Za-z0-9._/-]`
+   stops burn-in, because `runBurnIn` passes names through a shell. A weekly schedule burns in the
+   whole suite.
 
 ## Write-time enforcement
 

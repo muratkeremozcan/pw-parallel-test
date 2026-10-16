@@ -1,11 +1,14 @@
 /**
- * Fails when a merged run did not execute every test Playwright discovers, so a shard that
- * silently ran a subset cannot pass. Tests are compared by project, file and title path, because a
- * dependency project such as `setup` runs once in every shard and appears once per shard in the
- * merged report. Usage: node scripts/check-test-count.ts <merged-report.json>
+ * Fails unless a merged sharded run executed every test Playwright discovers exactly once, so a
+ * shard that silently ran a subset, or two shards that overlap, cannot pass. A dependency project
+ * such as `setup` runs once in every shard, so its tests must have run exactly once per shard.
+ * Tests are compared by project, file and title path.
+ *
+ * Usage: node scripts/check-test-count.ts <merged-report.json> <shard count>
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import playwrightConfig from '../playwright.config.ts';
 
 type Result = { status: string };
 type Test = { projectName: string; results: Result[] };
@@ -13,20 +16,22 @@ type Spec = { title: string; file: string; tests: Test[] };
 type Suite = { title: string; specs?: Spec[]; suites?: Suite[] };
 type Report = { suites: Suite[] };
 
-const reportPath = process.argv[2];
-if (!reportPath) {
-  throw new Error('usage: node scripts/check-test-count.ts <merged-report.json>');
+const [reportPath, shardArgument] = process.argv.slice(2);
+const shards = Number(shardArgument);
+if (!reportPath || !Number.isInteger(shards) || shards < 1) {
+  throw new Error('usage: node scripts/check-test-count.ts <merged-report.json> <shard count>');
 }
 
-/** Maps each test key to the number of results recorded for it. */
-const collect = (report: Report): Map<string, number> => {
-  const keys = new Map<string, number>();
+/** Maps each test key to its project and the number of executed results recorded for it. */
+const collect = (report: Report) => {
+  const keys = new Map<string, { project: string; runs: number }>();
   const walk = (suite: Suite, path: string[]) => {
     for (const spec of suite.specs ?? []) {
       for (const test of spec.tests) {
         const key = [test.projectName, spec.file, ...path, spec.title].join(' › ');
-        const ran = test.results.filter((result) => result.status !== 'skipped').length;
-        keys.set(key, (keys.get(key) ?? 0) + ran);
+        const runs = test.results.filter((result) => result.status !== 'skipped').length;
+        const entry = keys.get(key) ?? { project: test.projectName, runs: 0 };
+        keys.set(key, { ...entry, runs: entry.runs + runs });
       }
     }
     for (const child of suite.suites ?? []) walk(child, [...path, child.title]);
@@ -45,16 +50,25 @@ const listed = collect(
   ) as Report,
 );
 const merged = collect(JSON.parse(readFileSync(reportPath, 'utf8')) as Report);
-
-const missing = [...listed.keys()].filter((key) => !merged.get(key));
-const unexpected = [...merged.keys()].filter((key) => !listed.has(key));
-
-console.log(
-  `discovered ${listed.size} tests, merged report executed ${listed.size - missing.length} of them`,
+// The JSON reporter omits project dependencies, so they come from the config itself.
+const dependencyProjects = new Set(
+  (playwrightConfig.projects ?? []).flatMap((project) => project.dependencies ?? []),
 );
-for (const key of missing) console.error(`not executed: ${key}`);
-for (const key of unexpected) console.error(`not discovered: ${key}`);
-if (listed.size === 0 || missing.length > 0 || unexpected.length > 0) {
+
+const problems: string[] = [];
+for (const [key, { project }] of listed) {
+  const expected = dependencyProjects.has(project) ? shards : 1;
+  const runs = merged.get(key)?.runs ?? 0;
+  if (runs !== expected) problems.push(`ran ${runs} times, expected ${expected}: ${key}`);
+}
+for (const key of merged.keys()) {
+  if (!listed.has(key)) problems.push(`not discovered: ${key}`);
+}
+
+console.log(`discovered ${listed.size} tests across ${shards} shards`);
+for (const problem of problems) console.error(problem);
+if (listed.size === 0 || problems.length > 0) {
   console.error('executed tests do not match the discovered tests');
   process.exit(1);
 }
+console.log('every discovered test ran the expected number of times');

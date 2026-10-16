@@ -15,8 +15,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
@@ -93,7 +93,7 @@ jobs:
             junit.xml
           retention-days: 14
       - name: Reconcile executed and discovered test counts
-        run: node scripts/check-test-count.ts merged-report.json
+        run: node scripts/check-test-count.ts merged-report.json 4
 
   burn-in:
     name: Burn-in
