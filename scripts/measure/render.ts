@@ -25,6 +25,7 @@ export type RunMetrics = {
   completion: number;
   queueMax: number;
   machine: number;
+  overlapping: string;
 };
 
 const seconds = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / 1000;
@@ -91,6 +92,12 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
     completion: (Math.max(...ends) - Math.min(...starts)) / 1000,
     queueMax: Math.max(...shardJobs.map(({ job }) => seconds(job.createdAt, job.startedAt))),
     machine: jobSeconds.reduce((sum, value) => sum + value, 0),
+    overlapping:
+      record.run.overlappingRuns.length === 0
+        ? 'none'
+        : record.run.overlappingRuns
+            .map((run) => `${run.id} (${run.workflowPath.split('/').pop()}, ${run.event})`)
+            .join(', '),
   };
 };
 
@@ -235,15 +242,17 @@ export const render = (records: RunRecord[]): string => {
     '## Runs',
     '',
     'Completion runs from the first job start to the last job end. Queue is the longest wait of a ' +
-      'shard job between creation and start. Machine time is the sum of the shard job durations.',
+      'shard job between creation and start. Machine time is the sum of the shard job durations. ' +
+      'Overlapping runs are other runs of the repository whose jobs ran during this run, ' +
+      'sharing the runner pool.',
     '',
-    '| Arm | Shards | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time |',
-    '| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: |',
+    '| Arm | Shards | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time | Overlapping runs |',
+    '| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
     ...metrics.map(
       (m) =>
         `| ${m.mode} | ${m.shardCount} | [${m.runId}](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/${m.runId}) | ` +
         `\`${m.headSha.slice(0, 7)}\` | ${m.shardPlaywrightSeconds.map((v) => v.toFixed(1)).join(' / ')} | ` +
-        `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} |`,
+        `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.overlapping} |`,
     ),
     '',
   );

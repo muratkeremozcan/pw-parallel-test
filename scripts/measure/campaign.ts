@@ -40,14 +40,32 @@ const listRuns = (workflow: string): Run[] =>
     ]),
   ) as Run[];
 
-/** Fails when any run of the measured workflows is still active, so a campaign starts alone. */
-const assertIdle = () => {
-  for (const workflow of Object.values(WORKFLOWS).map((path) => basename(path))) {
-    const active = listRuns(workflow).filter((run) => run.status !== 'completed');
-    if (active.length > 0) {
-      throw new Error(`${workflow} has active runs: ${active.map((run) => run.databaseId)}`);
-    }
+/** Waits until no workflow run of the repository is active, so a measured run starts alone. */
+const waitForIdle = async () => {
+  const deadline = Date.now() + RUN_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const active = ['queued', 'in_progress', 'waiting', 'pending', 'requested'].flatMap(
+      (status) =>
+        JSON.parse(
+          gh([
+            'run',
+            'list',
+            '--repo',
+            REPO,
+            '--status',
+            status,
+            '--json',
+            'databaseId,workflowName',
+          ]),
+        ) as { databaseId: number; workflowName: string }[],
+    );
+    if (active.length === 0) return;
+    console.log(
+      `waiting for active runs: ${active.map((r) => `${r.workflowName} ${r.databaseId}`)}`,
+    );
+    await delay(POLL_MS);
   }
+  throw new Error('the repository did not go idle');
 };
 
 /** Dispatches a run with a unique token in its run name and returns that run's id. */
@@ -107,7 +125,7 @@ const main = async () => {
   if (arms.length === 0 || !values.arms) throw new Error('--arms is required');
 
   for (const [index, arm] of arms.entries()) {
-    assertIdle();
+    await waitForIdle();
     const runId = await dispatch(basename(WORKFLOWS[arm.mode]), arm.shards, values.ref!);
     console.log(`[${index + 1}/${arms.length}] ${arm.mode}:${arm.shards} run ${runId} dispatched`);
     const conclusion = await waitFor(runId);
