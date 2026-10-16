@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "npm run typecheck && npm run format:check",
-    "test:burn-in-changed": "node scripts/burn-in-changed.ts"
+    "test:burn-in-changed": "node scripts/burn-in-changed.ts",
+    "test:scripts": "node --test \"scripts/**/*.test.ts\""
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

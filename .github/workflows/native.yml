@@ -1,0 +1,103 @@
+# Native Playwright sharding, dispatched by hand to measure shard balance.
+# Results are collected with scripts/measure/collect.ts; see results/README.md.
+name: Native shards
+
+on:
+  workflow_dispatch:
+    inputs:
+      shards:
+        description: Number of native shards
+        type: number
+        required: true
+        default: 4
+
+permissions:
+  contents: read
+
+# One measured run at a time, so runs never compete for runners. A queued run waits.
+concurrency:
+  group: shard-measurement
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      total: ${{ steps.plan.outputs.total }}
+    steps:
+      - name: Validate shard count and build the matrix
+        id: plan
+        env:
+          # Security: inputs passed through env: to prevent script injection
+          SHARDS: ${{ inputs.shards }}
+        run: |
+          if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || (( SHARDS < 1 || SHARDS > 16 )); then
+            echo "::error::shards must be an integer from 1 to 16, got '$SHARDS'"
+            exit 1
+          fi
+          echo "total=$SHARDS" >> "$GITHUB_OUTPUT"
+          echo "shards=$(seq -s, 1 "$SHARDS" | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
+
+  shard:
+    name: Shard ${{ matrix.shard }}/${{ needs.plan.outputs.total }}
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Run tests
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }}
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          if-no-files-found: error
+          retention-days: 30
+
+  merge:
+    name: Merge reports
+    needs: [plan, shard]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+      - name: Merge blob reports
+        run: |
+          PLAYWRIGHT_JSON_OUTPUT_NAME=merged-report.json \
+            npx playwright merge-reports --reporter=html,json ./all-blob-reports
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            merged-report.json
+          retention-days: 30
+      - name: Reconcile executed and discovered tests
+        run: node scripts/check-test-count.ts merged-report.json "${{ needs.plan.outputs.total }}"
