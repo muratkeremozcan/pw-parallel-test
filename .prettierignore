@@ -1,0 +1,11 @@
+node_modules/
+package-lock.json
+test-results/
+playwright-report/
+blob-report/
+all-blob-reports/
+_bmad/
+_bmad-output/
+.agents/
+.claude/
+results/raw/

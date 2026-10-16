@@ -6,3 +6,13 @@ across shards.
 
 It compares Playwright's native count-based `--shard` against
 [playwright-smart-parallelization](https://github.com/muratkeremozcan/playwright-smart-parallelization).
+
+## Layout
+
+- `tests/` holds the suite, scaffolded with BMad TEA. See [tests/README.md](tests/README.md).
+- `.github/workflows/test.yml` runs lint, four native shards, a report merge and burn-in.
+
+```sh
+npm ci
+npm test
+```
