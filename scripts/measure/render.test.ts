@@ -24,6 +24,7 @@ const blob = (current: number, total: number, tests: [string, number][]) => {
       project: {
         name: 'setup',
         dependencies: [],
+        retries: 0,
         suites: [{ title: 'setup/a.setup.ts', entries: [entry('setup', 'setup/a.setup.ts')] }],
       },
     }),
@@ -31,6 +32,7 @@ const blob = (current: number, total: number, tests: [string, number][]) => {
       project: {
         name: 'chromium',
         dependencies: ['setup'],
+        retries: 0,
         suites: tests.map(([file], i) => ({
           title: file,
           entries: [entry(`t${current}-${i}`, file)],
@@ -74,6 +76,7 @@ const record = (): RunRecord => ({
     event: 'workflow_dispatch',
     headBranch: 'main',
     headSha: 'a'.repeat(40),
+    suiteFingerprint: 'tests@aaaa playwright.config.ts@bbbb package-lock.json@cccc',
     conclusion: 'success',
     createdAt: new Date(0).toISOString(),
     runStartedAt: new Date(0).toISOString(),
@@ -113,7 +116,7 @@ test('reduceBlob keeps only executed tests and the shard window', () => {
   assert.deepEqual(shard.shard, { current: 1, total: 2 });
   assert.equal(shard.run.duration, 53_000);
   assert.equal(shard.tests.length, 3);
-  assert.deepEqual(shard.projects[1], { name: 'chromium', dependencies: ['setup'] });
+  assert.deepEqual(shard.projects[1], { name: 'chromium', dependencies: ['setup'], retries: 0 });
 });
 
 test('reduceBlob rejects an attempt that never ended', () => {
@@ -159,8 +162,24 @@ test('render produces the summary, bound and run tables', () => {
   assert.match(text, /actions\/runs\/42\)/);
 });
 
-test('idealBounds is empty without native runs, and render still succeeds', () => {
-  const smart = { ...record(), mode: 'smart' };
+test('idealBounds is empty without native runs', () => {
   assert.deepEqual(idealBounds([], [2]), []);
-  assert.doesNotMatch(render([smart]), /## Ideal bound/);
+});
+
+test('metricsOf refuses runs of another workflow, a re-run attempt, or retries', () => {
+  const other = record();
+  other.run.workflowPath = '.github/workflows/test.yml';
+  assert.throws(() => metricsOf(other), /not mode native/);
+  const rerun = record();
+  rerun.run.attempt = 2;
+  assert.throws(() => metricsOf(rerun), /only first attempts/);
+  const retried = record();
+  retried.shards[0].projects[1].retries = 1;
+  assert.throws(() => metricsOf(retried), /retries/);
+});
+
+test('render refuses records from different suite versions', () => {
+  const changed = record();
+  changed.run.suiteFingerprint = 'tests@ffff playwright.config.ts@bbbb package-lock.json@cccc';
+  assert.throws(() => render([record(), changed]), /2 suite versions/);
 });

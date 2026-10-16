@@ -7,19 +7,20 @@
  * An arm is `<mode>:<shards>`; mode `native` dispatches .github/workflows/native.yml.
  */
 import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { basename } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
-import { collect, writeRecord } from './collect.ts';
+import { collect, WORKFLOWS, writeRecord } from './collect.ts';
 
 const REPO = 'muratkeremozcan/pw-parallel-test';
-const WORKFLOWS: Record<string, string> = { native: 'native.yml' };
 const POLL_MS = 30_000;
 const FIND_TIMEOUT_MS = 5 * 60_000;
 const RUN_TIMEOUT_MS = 60 * 60_000;
 
 const gh = (args: string[]) => execFileSync('gh', args, { encoding: 'utf8' });
 
-type Run = { databaseId: number; status: string; createdAt: string; event: string };
+type Run = { databaseId: number; status: string; displayTitle: string };
 
 const listRuns = (workflow: string): Run[] =>
   JSON.parse(
@@ -35,13 +36,13 @@ const listRuns = (workflow: string): Run[] =>
       '--limit',
       '20',
       '--json',
-      'databaseId,status,createdAt,event',
+      'databaseId,status,displayTitle',
     ]),
   ) as Run[];
 
 /** Fails when any run of the measured workflows is still active, so a campaign starts alone. */
 const assertIdle = () => {
-  for (const workflow of Object.values(WORKFLOWS)) {
+  for (const workflow of Object.values(WORKFLOWS).map((path) => basename(path))) {
     const active = listRuns(workflow).filter((run) => run.status !== 'completed');
     if (active.length > 0) {
       throw new Error(`${workflow} has active runs: ${active.map((run) => run.databaseId)}`);
@@ -49,15 +50,28 @@ const assertIdle = () => {
   }
 };
 
+/** Dispatches a run with a unique token in its run name and returns that run's id. */
 const dispatch = async (workflow: string, shards: number, ref: string): Promise<number> => {
-  const known = new Set(listRuns(workflow).map((run) => run.databaseId));
-  gh(['workflow', 'run', workflow, '--repo', REPO, '--ref', ref, '-f', `shards=${shards}`]);
+  const token = randomUUID();
+  gh([
+    'workflow',
+    'run',
+    workflow,
+    '--repo',
+    REPO,
+    '--ref',
+    ref,
+    '-f',
+    `shards=${shards}`,
+    '-f',
+    `token=${token}`,
+  ]);
   const deadline = Date.now() + FIND_TIMEOUT_MS;
   while (Date.now() < deadline) {
     await delay(5_000);
-    const fresh = listRuns(workflow).filter((run) => !known.has(run.databaseId));
-    if (fresh.length === 1) return fresh[0].databaseId;
-    if (fresh.length > 1) throw new Error(`more than one new ${workflow} run appeared`);
+    const mine = listRuns(workflow).filter((run) => run.displayTitle.endsWith(` ${token}`));
+    if (mine.length === 1) return mine[0].databaseId;
+    if (mine.length > 1) throw new Error(`more than one ${workflow} run carries token ${token}`);
   }
   throw new Error(`no ${workflow} run appeared after dispatch`);
 };
@@ -94,11 +108,15 @@ const main = async () => {
 
   for (const [index, arm] of arms.entries()) {
     assertIdle();
-    const runId = await dispatch(WORKFLOWS[arm.mode], arm.shards, values.ref!);
+    const runId = await dispatch(basename(WORKFLOWS[arm.mode]), arm.shards, values.ref!);
     console.log(`[${index + 1}/${arms.length}] ${arm.mode}:${arm.shards} run ${runId} dispatched`);
     const conclusion = await waitFor(runId);
     if (conclusion !== 'success') throw new Error(`run ${runId} concluded ${conclusion}`);
-    const file = writeRecord(collect(runId, arm.mode), values.out!);
+    const record = collect(runId, arm.mode);
+    if (record.run.headBranch !== values.ref || record.shardCount !== arm.shards) {
+      throw new Error(`run ${runId} ran ${record.run.headBranch} with ${record.shardCount} shards`);
+    }
+    const file = writeRecord(record, values.out!);
     console.log(`[${index + 1}/${arms.length}] wrote ${file}`);
   }
 };

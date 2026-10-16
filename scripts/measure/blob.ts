@@ -22,7 +22,7 @@ export type ShardReport = {
   node: string | null;
   shard: { current: number; total: number } | null;
   workers: number;
-  projects: { name: string; dependencies: string[] }[];
+  projects: { name: string; dependencies: string[]; retries: number }[];
   run: { status: string; startTime: number; duration: number };
   tests: TestRecord[];
 };
@@ -81,7 +81,11 @@ export const reduceBlob = (text: string): ShardReport => {
   for (const event of events) {
     if (event.method !== 'onProject') continue;
     const project = event.params.project;
-    projects.push({ name: project.name, dependencies: project.dependencies });
+    projects.push({
+      name: project.name,
+      dependencies: project.dependencies,
+      retries: project.retries,
+    });
     for (const suite of project.suites as Entry[]) {
       // A top-level suite is a file; its title is the file path, already on each test.
       collectTests(suite.entries ?? [], [], project.name, tests);

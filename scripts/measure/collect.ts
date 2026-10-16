@@ -20,6 +20,9 @@ const REPO = 'muratkeremozcan/pw-parallel-test';
 const MAX_BUFFER = 256 * 1024 * 1024;
 const PAGE_SIZE = 100;
 
+/** The workflow each measured arm runs; a record from any other workflow is rejected. */
+export const WORKFLOWS: Record<string, string> = { native: '.github/workflows/native.yml' };
+
 export type JobRecord = {
   id: number;
   name: string;
@@ -42,6 +45,7 @@ export type RunRecord = {
     event: string;
     headBranch: string;
     headSha: string;
+    suiteFingerprint: string;
     conclusion: string | null;
     createdAt: string;
     runStartedAt: string;
@@ -98,10 +102,37 @@ const readBlobArtifact = (artifactId: number): string => {
   }
 };
 
+/**
+ * Identifies the suite a run executed: the git tree of tests/ and the blobs of the Playwright
+ * config and the lockfile at the run's commit. Runs on different commits share a fingerprint when
+ * those three are unchanged.
+ */
+const SUITE_PATHS = ['tests', 'playwright.config.ts', 'package-lock.json'];
+const suiteFingerprint = (sha: string): string => {
+  const commit = ghJson<{ tree: { sha: string } }>(`repos/${REPO}/git/commits/${sha}`);
+  const tree = ghJson<{ tree: { path: string; sha: string }[]; truncated: boolean }>(
+    `repos/${REPO}/git/trees/${commit.tree.sha}`,
+  );
+  if (tree.truncated) throw new Error(`the root tree of ${sha} is truncated`);
+  return SUITE_PATHS.map((path) => {
+    const entry = tree.tree.find((item) => item.path === path);
+    if (!entry) throw new Error(`${path} is missing at ${sha}`);
+    return `${path}@${entry.sha.slice(0, 12)}`;
+  }).join(' ');
+};
+
 export const collect = (runId: number, mode: string): RunRecord => {
   const run = ghJson<Record<string, any>>(`repos/${REPO}/actions/runs/${runId}`);
   if (run.status !== 'completed') {
     throw new Error(`run ${runId} is ${run.status}; collect it after it completes`);
+  }
+  if (run.run_attempt !== 1) {
+    throw new Error(`run ${runId} is attempt ${run.run_attempt}; only first attempts are measured`);
+  }
+  if (!WORKFLOWS[mode] || run.path !== WORKFLOWS[mode] || run.event !== 'workflow_dispatch') {
+    throw new Error(
+      `run ${runId} is a ${run.event} run of ${run.path}, not a dispatched run of mode ${mode}`,
+    );
   }
   const jobs = paginate<Record<string, any>>(
     `repos/${REPO}/actions/runs/${runId}/jobs`,
@@ -146,6 +177,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
       event: run.event,
       headBranch: run.head_branch,
       headSha: run.head_sha,
+      suiteFingerprint: suiteFingerprint(run.head_sha),
       conclusion: run.conclusion,
       createdAt: run.created_at,
       runStartedAt: run.run_started_at,

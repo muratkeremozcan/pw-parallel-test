@@ -1,6 +1,8 @@
 # Native Playwright sharding, dispatched by hand to measure shard balance.
 # Results are collected with scripts/measure/collect.ts; see results/README.md.
 name: Native shards
+# The token lets scripts/measure/campaign.ts find the exact run it dispatched.
+run-name: Native shards ${{ inputs.shards }} ${{ inputs.token }}
 
 on:
   workflow_dispatch:
@@ -10,11 +12,17 @@ on:
         type: number
         required: true
         default: 4
+      token:
+        description: Dispatch token set by scripts/measure/campaign.ts
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
-# One measured run at a time, so runs never compete for runners. A queued run waits.
+# At most one measured run executes at a time. GitHub keeps one pending run and cancels an older
+# pending one, so scripts/measure/campaign.ts dispatches the next run only after the last finished.
 concurrency:
   group: shard-measurement
   cancel-in-progress: false
@@ -34,7 +42,7 @@ jobs:
           # Security: inputs passed through env: to prevent script injection
           SHARDS: ${{ inputs.shards }}
         run: |
-          if ! [[ "$SHARDS" =~ ^[0-9]+$ ]] || (( SHARDS < 1 || SHARDS > 16 )); then
+          if ! [[ "$SHARDS" =~ ^[1-9][0-9]?$ ]] || (( 10#$SHARDS > 16 )); then
             echo "::error::shards must be an integer from 1 to 16, got '$SHARDS'"
             exit 1
           fi
