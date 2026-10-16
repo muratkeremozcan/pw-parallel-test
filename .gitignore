@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Playwright output
+test-results/
+playwright-report/
+blob-report/
+all-blob-reports/
+/playwright/.cache/
+
+# BMAD and agent tooling installed locally; only team customization is committed
+_bmad/*
+!_bmad/custom/
+_bmad-output/
+.agents/
+.claude/*
+!.claude/hooks/
+!.claude/settings.json
+
+# OS and editor
+.DS_Store
