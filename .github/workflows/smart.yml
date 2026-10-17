@@ -1,9 +1,11 @@
 # Duration-balanced shards through playwright-smart-parallelization, dispatched by hand to compare
-# with native.yml. Set up as the Action's README Usage section shows. Results are collected with
-# scripts/measure/collect.ts; see results/README.md.
+# with native.yml. Set up as the Action's README shows: the shard job of native.yml with the
+# Action's step before the Playwright command and $PSP_ARGS after it, and the Action's optional
+# finish in the merge job. Results are collected with scripts/measure/collect.ts; see
+# results/README.md.
 name: Smart shards
 # The token lets scripts/measure/campaign.ts find the exact run it dispatched.
-run-name: Smart shards ${{ inputs.shards }} enabled=${{ inputs.enabled }} ${{ inputs.token }}
+run-name: Smart shards ${{ inputs.shards }} enabled=${{ inputs.enabled }}${{ inputs.workers && format(' workers={0}', inputs.workers) || '' }} ${{ inputs.token }}
 
 on:
   workflow_dispatch:
@@ -14,9 +16,14 @@ on:
         required: true
         default: 4
       enabled:
-        description: false runs native --shard through the Action (the rollback switch)
+        description: false runs plain --shard with an empty PSP_ARGS (the rollback switch)
         type: boolean
         default: true
+      workers:
+        description: Workers per shard, passed through the Action's workers input; empty keeps the config's 1
+        type: string
+        required: false
+        default: ''
       token:
         description: Dispatch token set by scripts/measure/campaign.ts
         type: string
@@ -33,33 +40,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  prepare:
-    name: Prepare
+  plan:
+    name: Plan
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     outputs:
-      matrix: ${{ steps.psp.outputs.matrix }}
-      plan: ${{ steps.psp.outputs.plan }}
-      mode: ${{ steps.psp.outputs.mode }}
-      reason: ${{ steps.psp.outputs.reason }}
+      shards: ${{ steps.plan.outputs.shards }}
+      total: ${{ steps.plan.outputs.total }}
     steps:
-      - uses: actions/checkout@v7
-      - id: psp
-        uses: muratkeremozcan/playwright-smart-parallelization@cfce541c155c97b6357dc30a6def987b4f5dd22a
-        with:
-          phase: prepare
-          shards: ${{ inputs.shards }}
-          command: npx playwright test
-          enabled: ${{ inputs.enabled }}
+      - name: Validate shard count and workers, and build the matrix
+        id: plan
+        env:
+          # Security: inputs passed through env: to prevent script injection
+          SHARDS: ${{ inputs.shards }}
+          WORKERS: ${{ inputs.workers }}
+        run: |
+          if ! [[ "$SHARDS" =~ ^[1-9][0-9]?$ ]] || (( 10#$SHARDS > 16 )); then
+            echo "::error::shards must be an integer from 1 to 16, got '$SHARDS'"
+            exit 1
+          fi
+          if [ -n "$WORKERS" ] && ! [[ "$WORKERS" =~ ^[1-9]$ ]]; then
+            echo "::error::workers must be empty or an integer from 1 to 9, got '$WORKERS'"
+            exit 1
+          fi
+          echo "total=$SHARDS" >> "$GITHUB_OUTPUT"
+          echo "shards=$(seq -s, 1 "$SHARDS" | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
 
-  test:
-    name: Shard ${{ matrix.shard }}/${{ inputs.shards }}
-    needs: prepare
+  shard:
+    name: Shard ${{ matrix.shard }}/${{ needs.plan.outputs.total }}
+    needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      # The same in every shard: each decides from the one snapshot the run pinned.
+      mode: ${{ steps.psp.outputs.mode }}
+      reason: ${{ steps.psp.outputs.reason }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -68,41 +87,76 @@ jobs:
           cache: npm
       # No browser install: no test opens a browser, and native.yml installs none either.
       - run: npm ci
-      - uses: muratkeremozcan/playwright-smart-parallelization@cfce541c155c97b6357dc30a6def987b4f5dd22a
+      - id: psp
+        uses: muratkeremozcan/playwright-smart-parallelization@65d649d62779c544dd9d4f358f129a5651d6e063
         with:
-          phase: run
-          plan: ${{ needs.prepare.outputs.plan }}
-          shard: ${{ matrix.shard }}
+          enabled: ${{ inputs.enabled }}
+          workers: ${{ inputs.workers }}
+          # Campaign runs of a pull request publish into its branch's own cache scope, so its
+          # warm runs balance from the history its cold run published. On main this is auto.
+          publish-history: 'true'
+      - name: Run tests
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }} $PSP_ARGS
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          if-no-files-found: error
+          retention-days: 30
 
-  finish:
-    name: Finish
-    needs: [prepare, test]
+  merge:
+    name: Merge reports
+    needs: [plan, shard]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - id: psp
-        uses: muratkeremozcan/playwright-smart-parallelization@cfce541c155c97b6357dc30a6def987b4f5dd22a
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          phase: finish
-          plan: ${{ needs.prepare.outputs.plan }}
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v8
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+      - name: Merge blob reports
+        run: |
+          PLAYWRIGHT_JSON_OUTPUT_NAME=merged-report.json \
+            npx playwright merge-reports --reporter=html,json ./all-blob-reports
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            merged-report.json
+          retention-days: 30
+      - name: Reconcile executed and discovered tests
+        run: node scripts/check-test-count.ts merged-report.json "${{ needs.plan.outputs.total }}"
+      - id: psp
+        if: ${{ !cancelled() }}
+        uses: muratkeremozcan/playwright-smart-parallelization/finish@65d649d62779c544dd9d4f358f129a5651d6e063
       # Keeps the Action's outputs after the run, for scripts/measure/collect.ts.
       - name: Record the Action's decision
         if: ${{ !cancelled() }}
         env:
-          PREPARE_MODE: ${{ needs.prepare.outputs.mode }}
-          PREPARE_REASON: ${{ needs.prepare.outputs.reason }}
+          MODE: ${{ needs.shard.outputs.mode }}
+          REASON: ${{ needs.shard.outputs.reason }}
           FINISH_MODE: ${{ steps.psp.outputs.mode }}
           COVERAGE: ${{ steps.psp.outputs.coverage }}
-          HISTORY: ${{ steps.psp.outputs.history }}
           OVERHEAD_MS: ${{ steps.psp.outputs.overhead-ms }}
         run: |
           mkdir -p psp-decision
           node -e '
             const e = process.env;
             const decision = {
-              mode: e.PREPARE_MODE, reason: e.PREPARE_REASON, finishMode: e.FINISH_MODE,
-              coverage: e.COVERAGE, history: e.HISTORY,
+              mode: e.MODE, reason: e.REASON, finishMode: e.FINISH_MODE, coverage: e.COVERAGE,
               overheadMs: e.OVERHEAD_MS === "" ? null : Number(e.OVERHEAD_MS),
             };
             require("fs").writeFileSync("psp-decision/decision.json", JSON.stringify(decision) + "\n");

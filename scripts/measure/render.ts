@@ -150,6 +150,15 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
       `run ${record.run.id} has jobs that did not succeed: ${failed.map((j) => j.name)}`,
     );
   }
+  const workers = record.shards[0].workers;
+  if (record.shards.some((shard) => shard.workers !== workers)) {
+    throw new Error(`run ${record.run.id} ran its shards with different worker counts`);
+  }
+  if (record.workersInput && record.workersInput !== workers) {
+    throw new Error(
+      `run ${record.run.id} asked for ${record.workersInput} workers and ran ${workers}`,
+    );
+  }
   const jobSeconds = shardJobs.map(({ job }) => seconds(job.startedAt, job.completedAt));
   const playwrightSeconds = record.shards.map((shard) => shard.run.duration / 1000);
   const starts = record.jobs.map((job) => Date.parse(job.startedAt));
@@ -161,7 +170,7 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
     runId: record.run.id,
     headSha: record.run.headSha,
     playwrightVersion: record.shards[0].playwrightVersion,
-    workers: record.shards[0].workers,
+    workers,
     shardJobSeconds: jobSeconds,
     shardPlaywrightSeconds: playwrightSeconds,
     slowestJob: Math.max(...jobSeconds),
@@ -196,6 +205,7 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
 
 export type Bound = {
   shardCount: number;
+  workers: number;
   totalSeconds: number;
   longestUnitSeconds: number;
   longestUnit: string;
@@ -205,11 +215,15 @@ export type Bound = {
 
 /**
  * The balanced lower bound for a shard's Playwright run time: every shard runs the setup
- * project, then at least an equal share of the remaining test time, and never less than the
- * longest indivisible unit. With fullyParallel off, a spec file is that unit. Each test's duration
- * is its median over every collected run.
+ * project, then its workers share at least an equal part of the remaining test time, and never
+ * less than the longest indivisible unit. With fullyParallel off, a spec file is that unit. Each
+ * test's duration is its median over every collected run. `layouts` are `[shards, workers]` pairs;
+ * a plain number is that many shards of 1 worker.
  */
-export const idealBounds = (records: RunRecord[], shardCounts: number[]): Bound[] => {
+export const idealBounds = (
+  records: RunRecord[],
+  layouts: (number | [number, number])[],
+): Bound[] => {
   const durations = new Map<string, { project: string; file: string; values: number[] }>();
   const dependencyProjects = new Set(
     records.flatMap((record) =>
@@ -242,14 +256,18 @@ export const idealBounds = (records: RunRecord[], shardCounts: number[]): Bound[
   if (units.size === 0) return [];
   const total = [...units.values()].reduce((sum, value) => sum + value, 0);
   const [longestUnit, longestUnitSeconds] = [...units.entries()].sort((a, b) => b[1] - a[1])[0];
-  return shardCounts.map((shardCount) => ({
-    shardCount,
-    totalSeconds: total,
-    longestUnitSeconds,
-    longestUnit,
-    setupSeconds,
-    idealSeconds: setupSeconds + Math.max(total / shardCount, longestUnitSeconds),
-  }));
+  return layouts.map((layout) => {
+    const [shardCount, workers] = typeof layout === 'number' ? [layout, 1] : layout;
+    return {
+      shardCount,
+      workers,
+      totalSeconds: total,
+      longestUnitSeconds,
+      longestUnit,
+      setupSeconds,
+      idealSeconds: setupSeconds + Math.max(total / (shardCount * workers), longestUnitSeconds),
+    };
+  });
 };
 
 const s = (value: number) => `${value.toFixed(1)} s`;
@@ -270,24 +288,25 @@ export const render = (records: RunRecord[]): string => {
   }
   const metrics = records
     .map(metricsOf)
-    .sort((a, b) => a.shardCount - b.shardCount || a.runId - b.runId);
+    .sort((a, b) => a.shardCount - b.shardCount || a.workers - b.workers || a.runId - b.runId);
   const groups = new Map<string, RunMetrics[]>();
   for (const m of metrics) {
-    const key = `${m.arm}|${m.shardCount}`;
+    const key = `${m.arm}|${m.shardCount}|${m.workers}`;
     groups.set(key, [...(groups.get(key) ?? []), m]);
   }
   const ordered = [...groups.entries()].sort(([a], [b]) => {
-    const [armA, countA] = a.split('|');
-    const [armB, countB] = b.split('|');
+    const [armA, countA, workersA] = a.split('|');
+    const [armB, countB, workersB] = b.split('|');
     return (
       Number(countA) - Number(countB) ||
+      Number(workersA) - Number(workersB) ||
       armRank(armA) - armRank(armB) ||
       Math.min(...groups.get(a)!.map((r) => r.runId)) -
         Math.min(...groups.get(b)!.map((r) => r.runId))
     );
   });
-  const nativeMedian = (count: string, pick: (m: RunMetrics) => number) => {
-    const runs = groups.get(`native|${count}`);
+  const nativeMedian = (count: string, workers: string, pick: (m: RunMetrics) => number) => {
+    const runs = groups.get(`native|${count}|${workers}`);
     return runs ? median(runs.map(pick)) : null;
   };
   /** What a reader must know before comparing an arm's medians: run count, branch, history. */
@@ -311,10 +330,12 @@ export const render = (records: RunRecord[]): string => {
     const percent = Math.round(((value - base) / base) * 100) || 0;
     return `${percent > 0 ? '+' : ''}${percent}%`;
   };
-  const shardCounts = [...new Set(metrics.map((m) => m.shardCount))].sort((a, b) => a - b);
+  const layouts = [...new Set(metrics.map((m) => `${m.shardCount}|${m.workers}`))]
+    .map((key) => key.split('|').map(Number) as [number, number])
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const bounds = idealBounds(
     records.filter((record) => record.mode === 'native'),
-    shardCounts,
+    layouts,
   );
   const versions = [...new Set(metrics.map((m) => m.playwrightVersion))].join(', ');
   const workers = [...new Set(metrics.map((m) => m.workers))].join(', ');
@@ -327,7 +348,7 @@ export const render = (records: RunRecord[]): string => {
     '',
     '<!-- Generated by scripts/measure/render.ts from results/raw/. Do not edit by hand. -->',
     '',
-    `Playwright ${versions}, ${workers} worker per shard, retries ${retries}, suite ` +
+    `Playwright ${versions}, ${workers} ${workers === '1' ? 'worker' : 'workers'} per shard as the Workers column shows, retries ${retries}, suite ` +
       `\`${fingerprints[0]}\`. \`fullyParallel\` is off in that \`playwright.config.ts\`. ` +
       `${metrics.length} ${metrics.length === 1 ? 'run' : 'runs'}. Times are seconds. Job times come from the GitHub Actions API, ` +
       'Playwright times from each shard’s blob report.',
@@ -336,29 +357,31 @@ export const render = (records: RunRecord[]): string => {
     '',
     'Medians over the runs of each arm. The ideal bound is the balanced lower bound for the ' +
       'slowest shard’s Playwright time. "vs native" compares a median with the native median at ' +
-      'the same shard count. `smart` runs are the ones the Action balanced from its history; the ' +
+      'the same shard and worker count. `smart` runs are the ones the Action balanced from its history; the ' +
       'cold start is the first smart run, which had no history and ran native sharding; ' +
       '`rollback` ran the smart workflow with `enabled: false`. `@sha` is the Action commit.',
     '',
-    '| Arm | Shards | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time | Notes |',
-    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |',
+    '| Arm | Shards | Workers | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time | Notes |',
+    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |',
   ];
   for (const [key, runs] of ordered) {
-    const [arm, count] = key.split('|');
-    const bound = bounds.find((b) => b.shardCount === Number(count));
+    const [arm, count, workers] = key.split('|');
+    const bound = bounds.find(
+      (b) => b.shardCount === Number(count) && b.workers === Number(workers),
+    );
     const slowest = median(runs.map((r) => r.slowestPlaywright));
     const completion = median(runs.map((r) => r.completion));
     lines.push(
-      `| ${arm} | ${count} | ${runs.length} | ${s(slowest)} | ` +
+      `| ${arm} | ${count} | ${workers} | ${runs.length} | ${s(slowest)} | ` +
         `${versus(
           slowest,
-          nativeMedian(count, (r) => r.slowestPlaywright),
+          nativeMedian(count, workers, (r) => r.slowestPlaywright),
         )} | ` +
         `${bound ? s(bound.idealSeconds) : 'n/a'} | ${s(median(runs.map((r) => r.playwrightSpread)))} | ` +
         `${s(median(runs.map((r) => r.slowestJob)))} | ${s(median(runs.map((r) => r.jobSpread)))} | ` +
         `${s(completion)} | ${versus(
           completion,
-          nativeMedian(count, (r) => r.completion),
+          nativeMedian(count, workers, (r) => r.completion),
         )} | ` +
         `${s(median(runs.map((r) => r.queueMax)))} | ${s(median(runs.map((r) => r.machine)))} | ` +
         `${armNotes(runs)} |`,
@@ -371,12 +394,13 @@ export const render = (records: RunRecord[]): string => {
     '',
     '## Run links',
     '',
-    'Every run the summary counts, by arm and shard count.',
+    'Every run the summary counts, by arm, shard count and workers per shard.',
     '',
     ...ordered.map(([key, runs]) => {
-      const [arm, count] = key.split('|');
+      const [arm, count, workers] = key.split('|');
       const links = runs.map((r) => `[${r.runId}](${runUrl(r.runId)})`).join(', ');
-      return `- ${arm}, ${count} shards: ${links}`;
+      const per = workers === '1' ? '' : `, ${workers} workers`;
+      return `- ${arm}, ${count} shards${per}: ${links}`;
     }),
   );
 
@@ -389,13 +413,13 @@ export const render = (records: RunRecord[]): string => {
       `From the median duration of each test over the native runs: ${s(b.totalSeconds)} of test ` +
         `time outside the setup project, ${s(b.setupSeconds)} of setup that every shard runs, and ` +
         `a longest indivisible unit of ${s(b.longestUnitSeconds)} (\`${b.longestUnit}\`). ` +
-        'The bound is setup + max(total / shards, longest unit).',
+        'The bound is setup + max(total / (shards × workers), longest unit).',
       '',
-      '| Shards | Total / shards | Longest unit | Ideal bound |',
-      '| ---: | ---: | ---: | ---: |',
+      '| Shards | Workers | Total / (shards × workers) | Longest unit | Ideal bound |',
+      '| ---: | ---: | ---: | ---: | ---: |',
       ...bounds.map(
         (bound) =>
-          `| ${bound.shardCount} | ${s(bound.totalSeconds / bound.shardCount)} | ${s(bound.longestUnitSeconds)} | ${s(bound.idealSeconds)} |`,
+          `| ${bound.shardCount} | ${bound.workers} | ${s(bound.totalSeconds / (bound.shardCount * bound.workers))} | ${s(bound.longestUnitSeconds)} | ${s(bound.idealSeconds)} |`,
       ),
     );
   }
@@ -410,11 +434,11 @@ export const render = (records: RunRecord[]): string => {
       `runner pool, a shard job that waited more than ${SLOW_START_SECONDS} s to start, and a run ` +
       'dispatched from a branch other than main.',
     '',
-    '| Arm | Shards | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time | Notes |',
-    '| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
+    '| Arm | Shards | Workers | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time | Notes |',
+    '| --- | ---: | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
     ...metrics.map(
       (m) =>
-        `| ${m.arm} | ${m.shardCount} | [${m.runId}](${runUrl(m.runId)}) | ` +
+        `| ${m.arm} | ${m.shardCount} | ${m.workers} | [${m.runId}](${runUrl(m.runId)}) | ` +
         `\`${m.headSha.slice(0, 7)}\` | ${m.shardPlaywrightSeconds.map((v) => v.toFixed(1)).join(' / ')} | ` +
         `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.notes} |`,
     ),
