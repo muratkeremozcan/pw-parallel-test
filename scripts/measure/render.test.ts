@@ -4,6 +4,7 @@ import { reduceBlob } from './blob.ts';
 import type { JobRecord, RunRecord } from './collect.ts';
 import {
   armOf,
+  completionWithout,
   executedTests,
   fullyParallelOf,
   idealBounds,
@@ -358,6 +359,7 @@ const current = (fullyParallel: boolean): RunRecord => {
   const r = record();
   r.schema = 3;
   r.fullyParallelInput = fullyParallel;
+  for (const job of r.jobs) job.steps = [];
   r.shards = [
     reduceBlob(
       blob(
@@ -438,4 +440,33 @@ test('render keeps fullyParallel arms apart and compares each with its own nativ
   assert.match(text, /\| native \| 2 \| 1 \| yes \| 1 \| 26\.5 s \| 0% \|/);
   assert.match(text, /- native, 2 shards, fullyParallel: \[47\]/);
   assert.match(text, /\| 2 \| 1 \| yes \| 35\.0 s \| 40\.0 s \| 43\.0 s \|/);
+});
+
+test('completion leaves out the bookkeeping steps, and the finish step when asked', () => {
+  const r = current(false);
+  const at = (t: number) => new Date(t * 1000).toISOString();
+  const step = (name: string, from: number, to: number) => ({
+    name,
+    conclusion: 'success',
+    startedAt: at(from),
+    completedAt: at(to),
+  });
+  for (const job of r.jobs) job.steps = [step('Set up job', 0, 0)];
+  r.jobs[3].steps = [
+    step('Merge blob reports', 75, 80),
+    step('Run muratkeremozcan/playwright-smart-parallelization/finish@abc', 80, 86),
+    step("Record the Action's decision", 86, 87),
+    step("Upload the Action's decision", 87, 90),
+  ];
+  // The merge job ends at 90 s; the run starts at 1 s.
+  assert.equal(
+    completionWithout(r, () => false),
+    89,
+  );
+  const m = metricsOf(r);
+  assert.equal(m.completion, 85);
+  assert.equal(m.completionWithoutFinish, 79);
+  delete r.jobs[0].steps;
+  assert.throws(() => metricsOf(r), /jobs without steps/);
+  assert.equal(metricsOf(record()).completionWithoutFinish, null);
 });

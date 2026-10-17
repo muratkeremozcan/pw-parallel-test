@@ -28,7 +28,10 @@ export type RunMetrics = {
   jobSpread: number;
   slowestPlaywright: number;
   playwrightSpread: number;
+  /** First job start to last job end, without the benchmark's bookkeeping steps. */
   completion: number;
+  /** The same without the Action's optional finish step as well; null without step timings. */
+  completionWithoutFinish: number | null;
   queueMax: number;
   machine: number;
   notes: string;
@@ -134,6 +137,32 @@ export const fullyParallelOf = (record: RunRecord): boolean => {
   return value;
 };
 
+/**
+ * Steps of smart.yml that only keep the Action's outputs for this benchmark. A user's workflow has
+ * none, so completion leaves them out.
+ */
+const BOOKKEEPING_STEPS = new Set(["Record the Action's decision", "Upload the Action's decision"]);
+/** The Action's optional finish step, which native sharding has no counterpart of. */
+const FINISH_STEP = /playwright-smart-parallelization\/finish@/;
+
+/**
+ * First job start to last job end, with the time of the dropped steps taken out of the job that
+ * ran them, as if they had taken no time. Schema 2 records keep no steps, so their jobs count
+ * whole.
+ */
+export const completionWithout = (record: RunRecord, drop: (step: string) => boolean): number => {
+  const start = Math.min(...record.jobs.map((job) => Date.parse(job.startedAt)));
+  const ends = record.jobs.map((job) => {
+    if (!job.steps) return record.schema === 2 ? Date.parse(job.completedAt) : NaN;
+    const dropped = job.steps
+      .filter((step) => drop(step.name) && step.startedAt && step.completedAt)
+      .reduce((sum, step) => sum + Date.parse(step.completedAt!) - Date.parse(step.startedAt!), 0);
+    return Date.parse(job.completedAt) - dropped;
+  });
+  if (ends.some(Number.isNaN)) throw new Error(`run ${record.run.id} has jobs without steps`);
+  return (Math.max(...ends) - start) / 1000;
+};
+
 /** A shard job that waited longer than this to start is called out in the run's notes. */
 const SLOW_START_SECONDS = 30;
 
@@ -190,9 +219,7 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
   const fullyParallel = fullyParallelOf(record);
   const jobSeconds = shardJobs.map(({ job }) => seconds(job.startedAt, job.completedAt));
   const playwrightSeconds = record.shards.map((shard) => shard.run.duration / 1000);
-  const starts = record.jobs.map((job) => Date.parse(job.startedAt));
   const queueMax = Math.max(...shardJobs.map(({ job }) => seconds(job.createdAt, job.startedAt)));
-  const ends = record.jobs.map((job) => Date.parse(job.completedAt));
   return {
     arm: armOf(record),
     shardCount: record.shardCount,
@@ -207,7 +234,14 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
     jobSpread: Math.max(...jobSeconds) - Math.min(...jobSeconds),
     slowestPlaywright: Math.max(...playwrightSeconds),
     playwrightSpread: Math.max(...playwrightSeconds) - Math.min(...playwrightSeconds),
-    completion: (Math.max(...ends) - Math.min(...starts)) / 1000,
+    completion: completionWithout(record, (step) => BOOKKEEPING_STEPS.has(step)),
+    completionWithoutFinish:
+      record.schema === 2
+        ? null
+        : completionWithout(
+            record,
+            (step) => BOOKKEEPING_STEPS.has(step) || FINISH_STEP.test(step),
+          ),
     queueMax,
     machine: jobSeconds.reduce((sum, value) => sum + value, 0),
     overlapped: record.run.overlappingRuns.length > 0,
@@ -415,16 +449,22 @@ const renderSuite = (records: RunRecord[], level: string): string[] => {
       'slowest shard’s Playwright time. "vs native" compares a median with the native median at ' +
       'the same shard count, workers and fullyParallel. `smart` runs are the ones the Action balanced from its history; the ' +
       'cold start is the first smart run, which had no history and ran native sharding; ' +
-      '`rollback` ran the smart workflow with `enabled: false`. `@sha` is the Action commit.',
+      '`rollback` ran the smart workflow with `enabled: false`. `@sha` is the Action commit. ' +
+      'Completion and "without finish" are defined under Runs; native has no finish step, so its ' +
+      'two completions match.',
     '',
-    '| Arm | Shards | Workers | Fully parallel | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time | Notes |',
-    '| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |',
+    '| Arm | Shards | Workers | Fully parallel | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Completion without finish | vs native | Queue (max) | Machine time | Notes |',
+    '| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |',
   ];
   for (const runs of ordered) {
     const { arm, shardCount, workers: perShard, fullyParallel } = runs[0];
     const bound = boundOf(runs[0]);
     const slowest = median(runs.map((r) => r.slowestPlaywright));
     const completion = median(runs.map((r) => r.completion));
+    const withoutFinish = runs.every((r) => r.completionWithoutFinish !== null)
+      ? median(runs.map((r) => r.completionWithoutFinish!))
+      : null;
+    const nativeWithoutFinish = nativeMedian(runs[0], (r) => r.completionWithoutFinish ?? NaN);
     lines.push(
       `| ${arm} | ${shardCount} | ${perShard} | ${yesNo(fullyParallel)} | ${runs.length} | ${s(slowest)} | ` +
         `${versus(
@@ -437,6 +477,13 @@ const renderSuite = (records: RunRecord[], level: string): string[] => {
           completion,
           nativeMedian(runs[0], (r) => r.completion),
         )} | ` +
+        `${withoutFinish === null ? 'n/a' : s(withoutFinish)} | ${
+          withoutFinish === null ||
+          nativeWithoutFinish === null ||
+          Number.isNaN(nativeWithoutFinish)
+            ? 'n/a'
+            : versus(withoutFinish, nativeWithoutFinish)
+        } | ` +
         `${s(median(runs.map((r) => r.queueMax)))} | ${s(median(runs.map((r) => r.machine)))} | ` +
         `${armNotes(runs)} |`,
     );
@@ -486,19 +533,21 @@ const renderSuite = (records: RunRecord[], level: string): string[] => {
     '',
     `${level} Runs`,
     '',
-    'Completion runs from the first job start to the last job end. Queue is the longest wait of a ' +
+    'Completion runs from the first job start to the last job end. From schema 3 it leaves out ' +
+      'the two steps of smart.yml that keep the Action’s outputs for this benchmark, and ' +
+      '"without finish" also leaves out the Action’s optional finish step. Queue is the longest wait of a ' +
       'shard job between creation and start. Machine time is the sum of the shard job durations. ' +
       'Notes name other runs of the repository whose jobs ran during this run and shared the ' +
       `runner pool, a shard job that waited more than ${SLOW_START_SECONDS} s to start, and a run ` +
       'dispatched from a branch other than main.',
     '',
-    '| Arm | Shards | Workers | Fully parallel | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time | Notes |',
-    '| --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
+    '| Arm | Shards | Workers | Fully parallel | Run | Commit | Playwright per shard | Jobs per shard | Completion | Completion without finish | Queue (max) | Machine time | Notes |',
+    '| --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |',
     ...metrics.map(
       (m) =>
         `| ${m.arm} | ${m.shardCount} | ${m.workers} | ${yesNo(m.fullyParallel)} | [${m.runId}](${runUrl(m.runId)}) | ` +
         `\`${m.headSha.slice(0, 7)}\` | ${m.shardPlaywrightSeconds.map((v) => v.toFixed(1)).join(' / ')} | ` +
-        `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.notes} |`,
+        `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${m.completionWithoutFinish === null ? 'n/a' : s(m.completionWithoutFinish)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.notes} |`,
     ),
   );
   return lines;

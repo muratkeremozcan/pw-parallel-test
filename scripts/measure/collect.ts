@@ -15,7 +15,10 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { reduceBlob, type ShardReport } from './blob.ts';
 
-/** Schema 3 adds fullyParallel and tags to the reduced blob, and the fully-parallel input. */
+/**
+ * Schema 3 adds fullyParallel and tags to the reduced blob, the fully-parallel input, and each
+ * job's steps.
+ */
 export const SCHEMA = 3;
 const REPO = 'muratkeremozcan/pw-parallel-test';
 const MAX_BUFFER = 256 * 1024 * 1024;
@@ -75,6 +78,15 @@ export type JobRecord = {
   completedAt: string;
   runnerName: string | null;
   labels: string[];
+  /** The job's steps with their timestamps; absent in records of schema 2. */
+  steps?: StepRecord[];
+};
+
+export type StepRecord = {
+  name: string;
+  conclusion: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
 };
 
 export type RunRecord = {
@@ -251,6 +263,12 @@ export const collect = (runId: number, mode: string): RunRecord => {
     completedAt: job.completed_at,
     runnerName: job.runner_name,
     labels: job.labels,
+    steps: (job.steps as Record<string, any>[]).map((step): StepRecord => ({
+      name: step.name,
+      conclusion: step.conclusion,
+      startedAt: step.started_at,
+      completedAt: step.completed_at,
+    })),
   }));
   const allArtifacts = paginate<Record<string, any>>(
     `repos/${REPO}/actions/runs/${runId}/artifacts`,

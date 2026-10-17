@@ -42,9 +42,11 @@ across them.
   `fullyParallel`. The config also writes the value into its metadata, which each shard's blob
   report carries, and a record whose blobs disagree with the input is refused. The Action keeps a
   whole spec file as its unit either way; native sharding splits a fully parallel suite by test.
-- From the current suite smart.yml pins Action c439738 and sets `history-key` to the shard count,
-  plus `-fully-parallel` when that input is on, so every arm of shards, workers and
-  `fullyParallel` warms from a cold run of its own.
+- On the current suite smart.yml first pinned Action c439738 for every arm, then Action 410e55d,
+  which cuts the Action's per-shard and finish overhead, for the arms with `fullyParallel` off.
+  Its `history-key` holds the shard count, plus `-fully-parallel` when that input is on, and from
+  410e55d also the pin, so every arm of pin, shards, workers and `fullyParallel` warms from a cold
+  run of its own. RESULTS.md labels each smart arm with its pin.
 - Runs are dispatched one at a time, each only once no workflow run of the repository is active,
   and the next waits until the previous one completes, so
   measured runs never compete for runners. The workflow's concurrency group also keeps a second run from starting while one executes; it holds at most one waiting run, and a later dispatch cancels it.
@@ -87,7 +89,11 @@ node scripts/measure/render.ts
 
 - Slowest shard and spread (slowest minus fastest), for job durations and for Playwright's own run
   time per shard.
-- Completion: first job start to last job end in the run.
+- Completion: first job start to last job end in the run. Records of schema 3 keep each job's
+  steps, and completion leaves out smart.yml's "Record the Action's decision" and "Upload the
+  Action's decision", which only keep the Action's outputs for this benchmark. "Completion without
+  finish" also leaves out the Action's optional finish step, which native sharding has no
+  counterpart of. A dropped step counts as taking no time inside its job.
 - Queue: the longest wait of a shard job between creation and start.
 - Machine time: the sum of shard job durations.
 - Ideal bound: the setup project's time, plus the larger of total test time divided by the shard
