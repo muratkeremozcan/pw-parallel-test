@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { reduceBlob } from './blob.ts';
 import type { JobRecord, RunRecord } from './collect.ts';
-import { armOf, idealBounds, median, metricsOf, render } from './render.ts';
+import { armOf, executedTests, idealBounds, median, metricsOf, render } from './render.ts';
 
 const line = (method: string, params: unknown) => JSON.stringify({ method, params });
 
@@ -214,4 +214,27 @@ test('render compares each arm with native at the same shard count', () => {
   balanced.shards[0].run.duration = 26_500;
   const text = render([record(), balanced]);
   assert.match(text, /\| smart \| 2 \| 1 \| 26\.5 s \| -50% \|/);
+});
+
+test('executedTests rejects a dropped, a duplicated or a missing setup test', () => {
+  assert.equal(executedTests(record()).size, 5);
+  const dropped = record();
+  dropped.shards[1].tests[1].attempts = [{ retry: 0, status: 'skipped', duration: 0 }];
+  assert.throws(() => executedTests(dropped), /x0/);
+  const duplicated = record();
+  duplicated.shards[1].tests.push({ ...duplicated.shards[0].tests[1] });
+  assert.throws(() => executedTests(duplicated), /x2/);
+  const noSetup = record();
+  noSetup.shards[1].tests = noSetup.shards[1].tests.filter((t) => t.project !== 'setup');
+  assert.throws(() => executedTests(noSetup), /setup.*x1/);
+});
+
+test('render refuses runs that executed different test sets, and signs the change', () => {
+  const other = record();
+  other.run.id = 44;
+  other.shards[1].tests[2].title = 'renamed';
+  assert.throws(() => render([record(), other]), /different test set/);
+  const slower = smart('smart', { mode: 'balanced', reason: 'history entry x' });
+  slower.shards[0].run.duration = 60_000;
+  assert.match(render([record(), slower]), /\| smart \| 2 \| 1 \| 60\.0 s \| \+13% \|/);
 });

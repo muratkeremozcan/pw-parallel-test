@@ -34,7 +34,7 @@ node scripts/measure/campaign.ts --arms native:4,native:8,native:4,native:8,nati
 node scripts/measure/campaign.ts --arms smart:4,native:4,smart:4,native:8,smart:8,rollback:4
 
 # collect one finished run
-node scripts/measure/collect.ts --run <run id>
+node scripts/measure/collect.ts --run <run id> --mode native|smart|rollback
 
 # render RESULTS.md
 node scripts/measure/render.ts

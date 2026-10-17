@@ -59,6 +59,39 @@ export const armOf = (record: RunRecord): string => {
   throw new Error(`smart run ${record.run.id} ran ${decided.mode}: ${decided.reason}`);
 };
 
+const testKey = (test: RunRecord['shards'][number]['tests'][number]) =>
+  [test.project, test.file, ...test.titlePath, test.title, test.repeatEachIndex].join(' › ');
+
+/**
+ * The tests a run executed, checked the way check-test-count.ts checks a native run: every test
+ * ran exactly once across the shards, and each test of a dependency project once in every shard.
+ * The Action's own check is part of what is measured, and its rollback mode checks only exit codes.
+ */
+export const executedTests = (record: RunRecord): Set<string> => {
+  const dependencies = new Set(
+    record.shards.flatMap((shard) => shard.projects.flatMap((p) => p.dependencies)),
+  );
+  const runs = new Map<string, { project: string; count: number }>();
+  for (const shard of record.shards) {
+    for (const test of shard.tests) {
+      const executed = test.attempts.filter((a) => a.status !== 'skipped').length;
+      const key = testKey(test);
+      const entry = runs.get(key) ?? { project: test.project, count: 0 };
+      runs.set(key, { ...entry, count: entry.count + executed });
+    }
+  }
+  const wrong = [...runs].filter(
+    ([, { project, count }]) => count !== (dependencies.has(project) ? record.shardCount : 1),
+  );
+  if (wrong.length > 0) {
+    throw new Error(
+      `run ${record.run.id} ran tests the wrong number of times: ` +
+        wrong.map(([key, { count }]) => `${key} x${count}`).join(', '),
+    );
+  }
+  return new Set(runs.keys());
+};
+
 export const metricsOf = (record: RunRecord): RunMetrics => {
   if (
     !ARMS[record.mode] ||
@@ -191,6 +224,13 @@ export const render = (records: RunRecord[]): string => {
       `records come from ${fingerprints.length} suite versions: ${fingerprints.join(' | ')}`,
     );
   }
+  const testSets = records.map((record) => ({ id: record.run.id, tests: executedTests(record) }));
+  const reference = testSets[0];
+  for (const { id, tests } of testSets) {
+    const same =
+      tests.size === reference.tests.size && [...tests].every((key) => reference.tests.has(key));
+    if (!same) throw new Error(`run ${id} executed a different test set than run ${reference.id}`);
+  }
   const metrics = records
     .map(metricsOf)
     .sort((a, b) => a.shardCount - b.shardCount || a.runId - b.runId);
@@ -208,8 +248,11 @@ export const render = (records: RunRecord[]): string => {
     const runs = groups.get(`native|${count}`);
     return runs ? median(runs.map(pick)) : null;
   };
-  const versus = (value: number, base: number | null) =>
-    base === null ? 'n/a' : `${(((value - base) / base) * 100).toFixed(0)}%`;
+  const versus = (value: number, base: number | null) => {
+    if (base === null) return 'n/a';
+    const percent = Math.round(((value - base) / base) * 100) || 0;
+    return `${percent > 0 ? '+' : ''}${percent}%`;
+  };
   const shardCounts = [...new Set(metrics.map((m) => m.shardCount))].sort((a, b) => a - b);
   const bounds = idealBounds(
     records.filter((record) => record.mode === 'native'),

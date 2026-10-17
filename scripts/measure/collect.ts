@@ -3,7 +3,7 @@
  * every job with its timestamps, and one reduced blob report per shard. render.ts reads only these
  * records. Usage:
  *
- *   node scripts/measure/collect.ts --run <run id> [--mode native] [--out results/raw]
+ *   node scripts/measure/collect.ts --run <run id> [--mode native|smart|rollback] [--out results/raw]
  *
  * Adapted from measurements/collect.js on the s6-candidates branch of
  * muratkeremozcan/playwright-smart-parallelization (MIT), trimmed to this repository.
@@ -34,19 +34,19 @@ export type Arm = {
 export const ARMS: Record<string, Arm> = {
   native: {
     workflow: '.github/workflows/native.yml',
-    title: /^Native shards (\d+) /,
+    title: /^Native shards (\d+)(?: |$)/,
     inputs: {},
     blob: /^blob-report-(\d+)$/,
   },
   smart: {
     workflow: '.github/workflows/smart.yml',
-    title: /^Smart shards (\d+) enabled=true /,
+    title: /^Smart shards (\d+) enabled=true(?: |$)/,
     inputs: { enabled: 'true' },
     blob: /^psp-blob-[0-9a-f]+-\d+-(\d+)-attempt-1$/,
   },
   rollback: {
     workflow: '.github/workflows/smart.yml',
-    title: /^Smart shards (\d+) enabled=false /,
+    title: /^Smart shards (\d+) enabled=false(?: |$)/,
     inputs: { enabled: 'false' },
     blob: /^psp-blob-[0-9a-f]+-\d+-(\d+)-attempt-1$/,
   },
@@ -228,11 +228,11 @@ export const collect = (runId: number, mode: string): RunRecord => {
     throw new Error(`run ${runId} holds blob reports that do not cover shards 1..${shardCount}`);
   }
   const shards = artifacts.map(({ artifact }) => reduceBlob(readBlobArtifact(artifact.id)));
+  // Every arm runs Playwright with --shard=i/N, the Action included, so every blob carries it.
   shards.forEach((shard, i) => {
-    // native --shard stamps the blob; a balanced shard runs a test list and carries no shard.
-    if (shard.shard && (shard.shard.current !== i + 1 || shard.shard.total !== shardCount)) {
+    if (shard.shard?.current !== i + 1 || shard.shard?.total !== shardCount) {
       throw new Error(
-        `run ${runId} blob ${i + 1} says shard ${shard.shard.current}/${shard.shard.total}`,
+        `run ${runId} blob ${i + 1} says shard ${shard.shard?.current}/${shard.shard?.total}`,
       );
     }
   });
