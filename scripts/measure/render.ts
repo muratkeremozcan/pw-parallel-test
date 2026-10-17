@@ -336,6 +336,21 @@ export const render = (records: RunRecord[]): string => {
     );
   }
 
+  const runUrl = (id: number) =>
+    `https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/${id}`;
+  lines.push(
+    '',
+    '## Run links',
+    '',
+    'Every run the summary counts, by arm and shard count.',
+    '',
+    ...ordered.map(([key, runs]) => {
+      const [arm, count] = key.split('|');
+      const links = runs.map((r) => `[${r.runId}](${runUrl(r.runId)})`).join(', ');
+      return `- ${arm}, ${count} shards: ${links}`;
+    }),
+  );
+
   if (bounds.length > 0) {
     const b = bounds[0];
     lines.push(
@@ -370,7 +385,7 @@ export const render = (records: RunRecord[]): string => {
     '| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
     ...metrics.map(
       (m) =>
-        `| ${m.arm} | ${m.shardCount} | [${m.runId}](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/${m.runId}) | ` +
+        `| ${m.arm} | ${m.shardCount} | [${m.runId}](${runUrl(m.runId)}) | ` +
         `\`${m.headSha.slice(0, 7)}\` | ${m.shardPlaywrightSeconds.map((v) => v.toFixed(1)).join(' / ')} | ` +
         `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.notes} |`,
     ),
