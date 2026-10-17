@@ -233,6 +233,14 @@ const overlappingRuns = (runId: number, jobs: JobRecord[]): RunRecord['run']['ov
     .map((other) => ({ id: other.id, workflowPath: other.path, event: other.event }));
 };
 
+/** A job's steps, which completion needs; a job the API lists without them is refused. */
+const stepsOf = (runId: number, job: Record<string, any>): Record<string, any>[] => {
+  if (!Array.isArray(job.steps)) {
+    throw new Error(`run ${runId} job ${job.id} (${job.name}) has no steps in the jobs API`);
+  }
+  return job.steps;
+};
+
 export const collect = (runId: number, mode: string): RunRecord => {
   const run = ghJson<Record<string, any>>(`repos/${REPO}/actions/runs/${runId}`);
   if (run.status !== 'completed') {
@@ -263,7 +271,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
     completedAt: job.completed_at,
     runnerName: job.runner_name,
     labels: job.labels,
-    steps: (job.steps as Record<string, any>[]).map((step): StepRecord => ({
+    steps: stepsOf(runId, job).map((step): StepRecord => ({
       name: step.name,
       conclusion: step.conclusion,
       startedAt: step.started_at,
