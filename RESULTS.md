@@ -6,12 +6,12 @@ Playwright 1.64.1, 1 worker per shard, retries 0, suite `tests@3259c416b64e play
 
 ## Summary
 
-Medians over the runs of each arm. The ideal bound is the balanced lower bound for the slowest shard’s Playwright time.
+Medians over the runs of each arm. The ideal bound is the balanced lower bound for the slowest shard’s Playwright time. "vs native" compares a median with the native median at the same shard count. `smart` runs are the ones the Action balanced from its history; the cold start is the first smart run, which had no history and ran native sharding; `rollback` ran the smart workflow with `enabled: false`.
 
-| Arm | Shards | Runs | Slowest shard (Playwright) | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | Queue (max) | Machine time |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| native | 4 | 3 | 177.3 s | 108.2 s | 112.1 s | 190.0 s | 113.0 s | 213.0 s | 2.0 s | 492.0 s |
-| native | 8 | 3 | 147.6 s | 58.0 s | 120.1 s | 159.0 s | 115.0 s | 182.0 s | 2.0 s | 563.0 s |
+| Arm | Shards | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| native | 4 | 3 | 177.3 s | 0% | 108.2 s | 112.1 s | 190.0 s | 113.0 s | 213.0 s | 0% | 2.0 s | 492.0 s |
+| native | 8 | 3 | 147.6 s | 0% | 58.0 s | 120.1 s | 159.0 s | 115.0 s | 182.0 s | 0% | 2.0 s | 563.0 s |
 
 ## Ideal bound
 

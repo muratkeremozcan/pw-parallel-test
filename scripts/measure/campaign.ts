@@ -4,14 +4,14 @@
  *
  *   node scripts/measure/campaign.ts --arms native:4,native:8,native:4,native:8 [--ref main]
  *
- * An arm is `<mode>:<shards>`; mode `native` dispatches .github/workflows/native.yml.
+ * An arm is `<mode>:<shards>`, with a mode from ARMS in collect.ts: native, smart or rollback.
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { basename } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
-import { collect, WORKFLOWS, writeRecord } from './collect.ts';
+import { ARMS, collect, type Arm, writeRecord } from './collect.ts';
 
 const REPO = 'muratkeremozcan/pw-parallel-test';
 const POLL_MS = 30_000;
@@ -69,7 +69,8 @@ const waitForIdle = async () => {
 };
 
 /** Dispatches a run with a unique token in its run name and returns that run's id. */
-const dispatch = async (workflow: string, shards: number, ref: string): Promise<number> => {
+const dispatch = async (arm: Arm, shards: number, ref: string): Promise<number> => {
+  const workflow = basename(arm.workflow);
   const token = randomUUID();
   gh([
     'workflow',
@@ -83,6 +84,7 @@ const dispatch = async (workflow: string, shards: number, ref: string): Promise<
     `shards=${shards}`,
     '-f',
     `token=${token}`,
+    ...Object.entries(arm.inputs).flatMap(([name, value]) => ['-f', `${name}=${value}`]),
   ]);
   const deadline = Date.now() + FIND_TIMEOUT_MS;
   while (Date.now() < deadline) {
@@ -117,7 +119,7 @@ const main = async () => {
   const arms = (values.arms ?? '').split(',').map((arm) => {
     const [mode, count] = arm.split(':');
     const shards = Number(count);
-    if (!WORKFLOWS[mode] || !Number.isInteger(shards) || shards < 1) {
+    if (!ARMS[mode] || !Number.isInteger(shards) || shards < 1) {
       throw new Error(`bad arm ${JSON.stringify(arm)}; expected <mode>:<shards>`);
     }
     return { mode, shards };
@@ -126,7 +128,7 @@ const main = async () => {
 
   for (const [index, arm] of arms.entries()) {
     await waitForIdle();
-    const runId = await dispatch(basename(WORKFLOWS[arm.mode]), arm.shards, values.ref!);
+    const runId = await dispatch(ARMS[arm.mode], arm.shards, values.ref!);
     console.log(`[${index + 1}/${arms.length}] ${arm.mode}:${arm.shards} run ${runId} dispatched`);
     const conclusion = await waitFor(runId);
     if (conclusion !== 'success') throw new Error(`run ${runId} concluded ${conclusion}`);

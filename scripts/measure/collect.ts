@@ -3,7 +3,7 @@
  * every job with its timestamps, and one reduced blob report per shard. render.ts reads only these
  * records. Usage:
  *
- *   node scripts/measure/collect.ts --run <run id> [--mode native] [--out results/raw]
+ *   node scripts/measure/collect.ts --run <run id> [--mode native|smart|rollback] [--out results/raw]
  *
  * Adapted from measurements/collect.js on the s6-candidates branch of
  * muratkeremozcan/playwright-smart-parallelization (MIT), trimmed to this repository.
@@ -20,8 +20,39 @@ const REPO = 'muratkeremozcan/pw-parallel-test';
 const MAX_BUFFER = 256 * 1024 * 1024;
 const PAGE_SIZE = 100;
 
-/** The workflow each measured arm runs; a record from any other workflow is rejected. */
-export const WORKFLOWS: Record<string, string> = { native: '.github/workflows/native.yml' };
+/**
+ * The measured arms: the workflow each dispatches, the run name that identifies the arm and its
+ * shard count, the dispatch inputs, and the name of a shard's blob report artifact with its shard
+ * number. A run that matches none of them is rejected.
+ */
+export type Arm = {
+  workflow: string;
+  title: RegExp;
+  inputs: Record<string, string>;
+  blob: RegExp;
+};
+export const ARMS: Record<string, Arm> = {
+  native: {
+    workflow: '.github/workflows/native.yml',
+    title: /^Native shards (\d+)(?: |$)/,
+    inputs: {},
+    blob: /^blob-report-(\d+)$/,
+  },
+  smart: {
+    workflow: '.github/workflows/smart.yml',
+    title: /^Smart shards (\d+) enabled=true(?: |$)/,
+    inputs: { enabled: 'true' },
+    blob: /^psp-blob-[0-9a-f]+-\d+-(\d+)-attempt-1$/,
+  },
+  rollback: {
+    workflow: '.github/workflows/smart.yml',
+    title: /^Smart shards (\d+) enabled=false(?: |$)/,
+    inputs: { enabled: 'false' },
+    blob: /^psp-blob-[0-9a-f]+-\d+-(\d+)-attempt-1$/,
+  },
+};
+/** The Action's decision line in the prepare job log. */
+const ACTION_MODE = /mode (balanced|native|disabled) for all \d+ shards: (.*)$/m;
 
 export type JobRecord = {
   id: number;
@@ -54,6 +85,8 @@ export type RunRecord = {
     updatedAt: string;
   };
   shardCount: number;
+  /** The mode playwright-smart-parallelization chose in its prepare job; null for native.yml. */
+  action: { mode: string; reason: string } | null;
   jobs: JobRecord[];
   shards: ShardReport[];
 };
@@ -159,11 +192,14 @@ export const collect = (runId: number, mode: string): RunRecord => {
   if (run.run_attempt !== 1) {
     throw new Error(`run ${runId} is attempt ${run.run_attempt}; only first attempts are measured`);
   }
-  if (!WORKFLOWS[mode] || run.path !== WORKFLOWS[mode] || run.event !== 'workflow_dispatch') {
+  const arm = ARMS[mode];
+  const title = arm ? arm.title.exec(run.display_title) : null;
+  if (!arm || !title || run.path !== arm.workflow || run.event !== 'workflow_dispatch') {
     throw new Error(
-      `run ${runId} is a ${run.event} run of ${run.path}, not a dispatched run of mode ${mode}`,
+      `run ${runId} (${run.event} of ${run.path}, "${run.display_title}") is not a dispatched run of mode ${mode}`,
     );
   }
+  const shardCount = Number(title[1]);
   const jobs = paginate<Record<string, any>>(
     `repos/${REPO}/actions/runs/${runId}/jobs`,
     'jobs',
@@ -180,20 +216,35 @@ export const collect = (runId: number, mode: string): RunRecord => {
   const artifacts = paginate<Record<string, any>>(
     `repos/${REPO}/actions/runs/${runId}/artifacts`,
     'artifacts',
-  ).filter((artifact) => /^blob-report-\d+$/.test(artifact.name));
-  if (artifacts.length === 0) throw new Error(`run ${runId} has no blob-report artifacts`);
-  if (artifacts.some((artifact) => artifact.expired)) {
-    throw new Error(`run ${runId} has expired blob-report artifacts`);
+  )
+    .map((artifact) => ({ artifact, match: arm.blob.exec(artifact.name) }))
+    .filter((entry) => entry.match)
+    .map(({ artifact, match }) => ({ artifact, shard: Number(match![1]) }))
+    .sort((a, b) => a.shard - b.shard);
+  if (artifacts.some(({ artifact }) => artifact.expired)) {
+    throw new Error(`run ${runId} has expired blob report artifacts`);
   }
+  if (artifacts.length !== shardCount || artifacts.some(({ shard }, i) => shard !== i + 1)) {
+    throw new Error(`run ${runId} holds blob reports that do not cover shards 1..${shardCount}`);
+  }
+  const shards = artifacts.map(({ artifact }) => reduceBlob(readBlobArtifact(artifact.id)));
+  // Every arm runs Playwright with --shard=i/N, the Action included, so every blob carries it.
+  shards.forEach((shard, i) => {
+    if (shard.shard?.current !== i + 1 || shard.shard?.total !== shardCount) {
+      throw new Error(
+        `run ${runId} blob ${i + 1} says shard ${shard.shard?.current}/${shard.shard?.total}`,
+      );
+    }
+  });
 
-  const shards = artifacts
-    .map((artifact) => reduceBlob(readBlobArtifact(artifact.id)))
-    .sort((a, b) => (a.shard?.current ?? 0) - (b.shard?.current ?? 0));
-  const shardCount = shards[0].shard?.total ?? 1;
-  if (shards.length !== shardCount || shards.some((shard, i) => shard.shard?.current !== i + 1)) {
-    throw new Error(
-      `run ${runId} holds blob reports for shards that do not cover 1..${shardCount}`,
-    );
+  let action: RunRecord['action'] = null;
+  if (arm.workflow.endsWith('/smart.yml')) {
+    const prepare = jobs.find((job) => job.name === 'Prepare');
+    if (!prepare) throw new Error(`run ${runId} has no Prepare job`);
+    const log = gh(['api', `repos/${REPO}/actions/jobs/${prepare.id}/logs`]).toString('utf8');
+    const decided = ACTION_MODE.exec(log);
+    if (!decided) throw new Error(`run ${runId} prepare log states no mode`);
+    action = { mode: decided[1], reason: decided[2].trim() };
   }
 
   return {
@@ -215,6 +266,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
       updatedAt: run.updated_at,
     },
     shardCount,
+    action,
     jobs,
     shards,
   };

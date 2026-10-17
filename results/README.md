@@ -7,6 +7,12 @@ repository root is rendered from those records only. No number is typed by hand.
 
 - `.github/workflows/native.yml` runs native `--shard=i/N` from a `workflow_dispatch` input. Each
   shard uploads a blob report; a merge job merges them and fails unless every test ran exactly once, and each setup test once per shard.
+- `.github/workflows/smart.yml` runs the same suite through
+  [playwright-smart-parallelization](https://github.com/muratkeremozcan/playwright-smart-parallelization),
+  set up as its README shows, on `main` so it publishes its duration history. Its `enabled` input
+  is the rollback switch. The record keeps the mode the Action's prepare job chose: `balanced`
+  counts as the smart arm, `native` with no history as the cold start, and `disabled` as the
+  rollback.
 - Runs are dispatched one at a time, each only once no workflow run of the repository is active,
   and the next waits until the previous one completes, so
   measured runs never compete for runners. The workflow's concurrency group also keeps a second run from starting while one executes; it holds at most one waiting run, and a later dispatch cancels it.
@@ -25,9 +31,10 @@ repository root is rendered from those records only. No number is typed by hand.
 ```sh
 # dispatch, wait for and collect runs in order
 node scripts/measure/campaign.ts --arms native:4,native:8,native:4,native:8,native:4,native:8
+node scripts/measure/campaign.ts --arms smart:4,native:4,smart:4,native:8,smart:8,rollback:4
 
 # collect one finished run
-node scripts/measure/collect.ts --run <run id>
+node scripts/measure/collect.ts --run <run id> --mode native|smart|rollback
 
 # render RESULTS.md
 node scripts/measure/render.ts
