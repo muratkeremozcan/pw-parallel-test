@@ -265,3 +265,18 @@ test('metricsOf notes a slow shard start and a run off main, and checks the sche
   old.schema = 1;
   assert.throws(() => metricsOf(old), /schema 1/);
 });
+
+test('render notes a single branch run in the summary', () => {
+  const branch = smart('smart', {
+    mode: 'balanced',
+    reason: 'x',
+    coverage: 'ok',
+    history: 'unchanged',
+  });
+  branch.run.id = 45;
+  branch.run.headBranch = 'results/smart';
+  assert.match(
+    render([record(), branch]),
+    /\| 1 run, not a median; ran on results\/smart: read main’s history, published none/,
+  );
+});

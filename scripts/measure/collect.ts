@@ -56,6 +56,8 @@ export const ARMS: Record<string, Arm> = {
 };
 /** The Action's decision line in the prepare job log. */
 const ACTION_MODE = /mode (balanced|native|disabled) for all \d+ shards: (.*)$/m;
+/** The one Action commit whose decision is read from the prepare log. */
+const LOG_ONLY_PIN = '063aba85b7da2bc9f143b653b093160a77783a09';
 const ACTION_USES = /uses: muratkeremozcan\/playwright-smart-parallelization@([0-9a-f]{40})/g;
 
 export type JobRecord = {
@@ -288,7 +290,11 @@ export const collect = (runId: number, mode: string): RunRecord => {
         overheadMs: parsed.overheadMs,
       };
     } else {
-      // Actions before 01187a8 had no mode output; their prepare log states it.
+      // 063aba8 had no mode output, so its prepare log is the record. A later pin without the
+      // artifact lost its decision, and its coverage would go unchecked.
+      if (pins[0] !== LOG_ONLY_PIN) {
+        throw new Error(`run ${runId} on ${pins[0]} has no psp-decision artifact`);
+      }
       const prepare = jobs.find((job) => job.name === 'Prepare');
       if (!prepare) throw new Error(`run ${runId} has no Prepare job`);
       const log = gh(['api', `repos/${REPO}/actions/jobs/${prepare.id}/logs`]).toString('utf8');

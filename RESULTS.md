@@ -8,16 +8,16 @@ Playwright 1.64.1, 1 worker per shard, retries 0, suite `tests@3259c416b64e play
 
 Medians over the runs of each arm. The ideal bound is the balanced lower bound for the slowest shard’s Playwright time. "vs native" compares a median with the native median at the same shard count. `smart` runs are the ones the Action balanced from its history; the cold start is the first smart run, which had no history and ran native sharding; `rollback` ran the smart workflow with `enabled: false`. `@sha` is the Action commit.
 
-| Arm | Shards | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| native | 4 | 6 | 177.4 s | 0% | 108.2 s | 112.1 s | 190.0 s | 110.0 s | 213.5 s | 0% | 2.0 s | 492.5 s |
-| smart (cold start) @063aba8 | 4 | 1 | 177.1 s | 0% | 108.2 s | 112.1 s | 198.0 s | 114.0 s | 231.0 s | +8% | 2.0 s | 508.0 s |
-| smart @063aba8 | 4 | 3 | 110.1 s | -38% | 108.2 s | 0.5 s | 133.0 s | 9.0 s | 160.0 s | -25% | 2.0 s | 514.0 s |
-| smart @01187a8 | 4 | 1 | 110.2 s | -38% | 108.2 s | 0.5 s | 133.0 s | 10.0 s | 168.0 s | -21% | 2.0 s | 510.0 s |
-| rollback @063aba8 | 4 | 1 | 177.7 s | 0% | 108.2 s | 112.3 s | 198.0 s | 115.0 s | 225.0 s | +5% | 2.0 s | 507.0 s |
-| native | 8 | 6 | 147.9 s | 0% | 58.0 s | 120.5 s | 160.5 s | 118.5 s | 185.5 s | 0% | 2.0 s | 563.0 s |
-| smart @063aba8 | 8 | 3 | 59.0 s | -60% | 58.0 s | 3.7 s | 80.0 s | 8.0 s | 121.0 s | -35% | 2.0 s | 596.0 s |
-| smart @01187a8 | 8 | 1 | 59.3 s | -60% | 58.0 s | 3.8 s | 78.0 s | 7.0 s | 104.0 s | -44% | 2.0 s | 585.0 s |
+| Arm | Shards | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time | Notes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| native | 4 | 6 | 177.4 s | 0% | 108.2 s | 112.1 s | 190.0 s | 110.0 s | 213.5 s | 0% | 2.0 s | 492.5 s | none |
+| smart (cold start) @063aba8 | 4 | 1 | 177.1 s | 0% | 108.2 s | 112.1 s | 198.0 s | 114.0 s | 231.0 s | +8% | 2.0 s | 508.0 s | 1 run, not a median |
+| smart @063aba8 | 4 | 3 | 110.1 s | -38% | 108.2 s | 0.5 s | 133.0 s | 9.0 s | 160.0 s | -25% | 2.0 s | 514.0 s | none |
+| smart @01187a8 | 4 | 1 | 110.2 s | -38% | 108.2 s | 0.5 s | 133.0 s | 10.0 s | 168.0 s | -21% | 2.0 s | 510.0 s | 1 run, not a median; ran on results/smart: read main’s history, published none, so its finish skipped the history write |
+| rollback @063aba8 | 4 | 1 | 177.7 s | 0% | 108.2 s | 112.3 s | 198.0 s | 115.0 s | 225.0 s | +5% | 2.0 s | 507.0 s | 1 run, not a median |
+| native | 8 | 6 | 147.9 s | 0% | 58.0 s | 120.5 s | 160.5 s | 118.5 s | 185.5 s | 0% | 2.0 s | 563.0 s | none |
+| smart @063aba8 | 8 | 3 | 59.0 s | -60% | 58.0 s | 3.7 s | 80.0 s | 8.0 s | 121.0 s | -35% | 2.0 s | 596.0 s | none |
+| smart @01187a8 | 8 | 1 | 59.3 s | -60% | 58.0 s | 3.8 s | 78.0 s | 7.0 s | 104.0 s | -44% | 2.0 s | 585.0 s | 1 run, not a median; ran on results/smart: read main’s history, published none, so its finish skipped the history write |
 
 ## Run links
 

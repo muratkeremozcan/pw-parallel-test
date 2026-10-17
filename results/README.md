@@ -9,8 +9,10 @@ repository root is rendered from those records only. No number is typed by hand.
   shard uploads a blob report; a merge job merges them and fails unless every test ran exactly once, and each setup test once per shard.
 - `.github/workflows/smart.yml` runs the same suite through
   [playwright-smart-parallelization](https://github.com/muratkeremozcan/playwright-smart-parallelization),
-  set up as its README shows, on `main` so it publishes its duration history. Its `enabled` input
-  is the rollback switch. The record keeps the mode the Action's prepare job chose: `balanced`
+  set up as its README shows. Campaign runs dispatch on `main`, so they publish the Action's
+  duration history. Confirmation runs of a newer Action pin dispatch from the pull request's
+  branch: under `publish-history: auto` they read main's history and publish none, so their finish
+  job skips the history write, and RESULTS.md notes it. Its `enabled` input is the rollback switch. The record keeps the mode the Action's prepare job chose: `balanced`
   counts as the smart arm, `native` with no history as the cold start, and `disabled` as the
   rollback.
 - Runs are dispatched one at a time, each only once no workflow run of the repository is active,
@@ -20,6 +22,11 @@ repository root is rendered from those records only. No number is typed by hand.
   carries a suite fingerprint: the git tree of `tests/` plus the blobs of `playwright.config.ts` and
   `package-lock.json` at the run's commit. RESULTS.md refuses records whose fingerprints differ, so
   every number describes one suite.
+- A run is left out only when it cannot be measured, and is listed here. Rollback run
+  [38995303917](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38995303917) on
+  Action 01187a8 uploaded no blob report: in disabled mode that pin adds no blob reporter output
+  folder and uploads only its own, so the config's `./blob-report` stays on the runner, and the run
+  has no Playwright times.
 - Each record lists any other run of the repository whose jobs overlapped it, and RESULTS.md
   shows them, because overlapping runs share the account's runner pool.
 - A record keeps the run, every job with its created, started and completed timestamps from the
