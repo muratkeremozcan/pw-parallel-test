@@ -16,9 +16,10 @@ No browser download is needed. No test requests `page`, so Playwright never laun
 ## Running
 
 ```sh
-npm test                          # whole suite, 1 worker, about 7 minutes
+npm test                          # whole suite, 1 worker, about 9 minutes
 npx playwright test --workers=8   # same suite, faster locally
 npx playwright test --shard=2/4   # one native shard
+PW_FULLY_PARALLEL=true npx playwright test --workers=4   # with fullyParallel on
 npm run test:list                 # list tests without running them
 npm run test:burn-in-changed      # repeat the specs changed against main
 npm run lint                      # tsc and Prettier
@@ -28,17 +29,23 @@ npm run lint                      # tsc and Prettier
 
 ## Shape
 
-| Kind                    | Files | Tests | Fixed time |
-| ----------------------- | ----- | ----- | ---------- |
-| Setup project           | 1     | 1     | 3 s        |
-| Heavy specs             | 5     | 24    | 24 to 55 s |
-| Serial group            | 1     | 8     | 17.8 s     |
-| Light specs, 0.2 to 2 s | 26    | 189   | 4 to 12 s  |
+| Kind                          | Files | Tests | Fixed time per file |
+| ----------------------------- | ----- | ----- | ------------------- |
+| Setup project                 | 1     | 1     | 3 s                 |
+| Heavy specs, 4.6 to 6 s tests | 14    | 28    | 9.5 to 11.7 s       |
+| Serial group                  | 1     | 8     | 9.7 s               |
+| Light specs, 0.2 to 1.1 s     | 52    | 568   | 4.4 to 11.5 s       |
+
+531 s of test time sits outside the setup project. The longest spec file takes 11.7 s, under the
+16.6 s an even split gives each worker at 8 shards of 4 workers, so no single file bounds any
+measured layout. Native sharding splits by test count, so the heavy specs, few tests each and
+grouped under `checkout-`, `media-` and `reports-`, pile onto two or three shards.
 
 The chromium project depends on the setup project, so Playwright runs the setup test once in every
-shard. `fullyParallel` stays at Playwright's default (false), which makes a spec file the unit native
-sharding distributes. Retries are 0 and workers are 1 per shard, so a shard's run time is the sum of
-its tests.
+shard. `fullyParallel` is Playwright's default (false) unless `PW_FULLY_PARALLEL=true`: off, a spec
+file is the unit native sharding distributes; on, a test is. The serial describe stays whole either
+way and carries the `@serial` tag, which the ideal bound in RESULTS.md reads. Retries are 0. Workers
+default to 1; the measurement workflows set them per shard.
 
 ## Architecture
 

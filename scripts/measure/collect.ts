@@ -15,15 +15,17 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { reduceBlob, type ShardReport } from './blob.ts';
 
-export const SCHEMA = 2;
+/** Schema 3 adds fullyParallel and tags to the reduced blob, and the fully-parallel input. */
+export const SCHEMA = 3;
 const REPO = 'muratkeremozcan/pw-parallel-test';
 const MAX_BUFFER = 256 * 1024 * 1024;
 const PAGE_SIZE = 100;
 
 /**
  * The measured arms: the workflow each dispatches, the run name that identifies the arm, its
- * shard count and any workers input, the dispatch inputs, and the name of a shard's blob report artifact with its shard
- * number. A run that matches none of them is rejected.
+ * shard count, any workers input and any fully-parallel input, the dispatch inputs, and the name
+ * of a shard's blob report artifact with its shard number. A run that matches none of them is
+ * rejected.
  */
 export type Arm = {
   workflow: string;
@@ -39,19 +41,21 @@ const SMART_BLOB =
 export const ARMS: Record<string, Arm> = {
   native: {
     workflow: '.github/workflows/native.yml',
-    title: /^Native shards (\d+)(?: workers=(\d+))?(?: |$)/,
+    title: /^Native shards (\d+)(?: workers=(\d+))?(?: fully-parallel=(true|false))?(?: |$)/,
     inputs: {},
     blob: /^blob-report-(\d+)$/,
   },
   smart: {
     workflow: '.github/workflows/smart.yml',
-    title: /^Smart shards (\d+) enabled=true(?: workers=(\d+))?(?: |$)/,
+    title:
+      /^Smart shards (\d+) enabled=true(?: workers=(\d+))?(?: fully-parallel=(true|false))?(?: |$)/,
     inputs: { enabled: 'true' },
     blob: SMART_BLOB,
   },
   rollback: {
     workflow: '.github/workflows/smart.yml',
-    title: /^Smart shards (\d+) enabled=false(?: workers=(\d+))?(?: |$)/,
+    title:
+      /^Smart shards (\d+) enabled=false(?: workers=(\d+))?(?: fully-parallel=(true|false))?(?: |$)/,
     inputs: { enabled: 'false' },
     blob: SMART_BLOB,
   },
@@ -95,6 +99,8 @@ export type RunRecord = {
   shardCount: number;
   /** The workers input of the dispatch; null when the run kept the config's workers. */
   workersInput?: number | null;
+  /** The fully-parallel input of the dispatch; absent in records of schema 2, which had none. */
+  fullyParallelInput?: boolean;
   /** The mode playwright-smart-parallelization chose; null for native.yml. */
   action: {
     /** The Action commit smart.yml pins at the run's commit. */
@@ -232,6 +238,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
   }
   const shardCount = Number(title[1]);
   const workersInput = title[2] ? Number(title[2]) : null;
+  const fullyParallelInput = title[3] === 'true';
   const jobs = paginate<Record<string, any>>(
     `repos/${REPO}/actions/runs/${runId}/jobs`,
     'jobs',
@@ -329,6 +336,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
     },
     shardCount,
     workersInput,
+    fullyParallelInput,
     action,
     jobs,
     shards,
@@ -336,12 +344,17 @@ export const collect = (runId: number, mode: string): RunRecord => {
 };
 
 /**
- * Writes a record as results/raw/<mode>-<shards>[-w<workers>]-<run id>.json and returns the path.
+ * Writes a record as results/raw/<mode>-<shards>[-w<workers>][-fp]-<run id>.json and returns the
+ * path.
  */
 export const writeRecord = (record: RunRecord, outDir: string): string => {
   mkdirSync(outDir, { recursive: true });
   const workers = record.workersInput ? `-w${record.workersInput}` : '';
-  const file = join(outDir, `${record.mode}-${record.shardCount}${workers}-${record.run.id}.json`);
+  const fullyParallel = record.fullyParallelInput ? '-fp' : '';
+  const file = join(
+    outDir,
+    `${record.mode}-${record.shardCount}${workers}${fullyParallel}-${record.run.id}.json`,
+  );
   writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`);
   return file;
 };

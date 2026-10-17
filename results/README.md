@@ -3,6 +3,20 @@
 `results/raw/` holds one JSON record per measured GitHub Actions run, and `RESULTS.md` at the
 repository root is rendered from those records only. No number is typed by hand.
 
+## Suites
+
+RESULTS.md renders one section per suite fingerprint, the newest first, and never compares numbers
+across them.
+
+- The current suite: 605 tests in 67 spec files and a setup project, 531 s of test time. Its longest
+  spec file takes 11.7 s, under the equal share of a worker at every measured layout up to 8 shards
+  of 4 workers, while native count-based sharding still piles the few-test heavy specs onto two or
+  three shards. It runs with `fullyParallel` off or on, from the workflows' `fully-parallel` input.
+- History, suite `tests@3259c416b64e`: 222 tests in 33 spec files, 421 s of test time, measured
+  mostly at 1 worker per shard. One 55 s spec file bounded every layout of 8 or more workers in
+  all, so its 4-worker rows measure that file alone. Its records stay in `results/raw/` and
+  render under the history heading.
+
 ## Method
 
 - `.github/workflows/native.yml` runs native `--shard=i/N` from a `workflow_dispatch` input. Each
@@ -24,6 +38,13 @@ repository root is rendered from those records only. No number is typed by hand.
   as `--workers` and as the Action's `workers` input, which packs the plan for them, so a rollback
   with its empty `$PSP_ARGS` keeps them too. The history key includes
   the workers, so each worker count starts with a cold run of its own.
+- Both workflows take a `fully-parallel` input, which sets `PW_FULLY_PARALLEL` and so the config's
+  `fullyParallel`. The config also writes the value into its metadata, which each shard's blob
+  report carries, and a record whose blobs disagree with the input is refused. The Action keeps a
+  whole spec file as its unit either way; native sharding splits a fully parallel suite by test.
+- From the current suite smart.yml pins Action c439738 and sets `history-key` to the shard count,
+  plus `-fully-parallel` when that input is on, so every arm of shards, workers and
+  `fullyParallel` warms from a cold run of its own.
 - Runs are dispatched one at a time, each only once no workflow run of the repository is active,
   and the next waits until the previous one completes, so
   measured runs never compete for runners. The workflow's concurrency group also keeps a second run from starting while one executes; it holds at most one waiting run, and a later dispatch cancels it.
@@ -52,6 +73,8 @@ node scripts/measure/campaign.ts --arms native:4,native:8,native:4,native:8,nati
 node scripts/measure/campaign.ts --arms smart:4,native:4,smart:4,native:8,smart:8,rollback:4
 # an arm takes an optional workers count, and --ref a branch
 node scripts/measure/campaign.ts --arms native:4:2,smart:4:2 --ref <branch>
+# and :fp dispatches with fully-parallel on
+node scripts/measure/campaign.ts --arms smart:4:2:fp,native:4:2:fp --ref <branch>
 
 # collect one finished run
 node scripts/measure/collect.ts --run <run id> --mode native|smart|rollback
@@ -68,8 +91,9 @@ node scripts/measure/render.ts
 - Queue: the longest wait of a shard job between creation and start.
 - Machine time: the sum of shard job durations.
 - Ideal bound: the setup project's time, plus the larger of total test time divided by the shard
-  count times the workers per shard and the longest indivisible unit. With `fullyParallel` off, a spec file is that unit. Test
-  durations are medians over all native runs.
+  count times the workers per shard and the longest indivisible unit. With `fullyParallel` off, a
+  spec file is that unit; on, a test is, and the tests tagged `@serial` form one unit per serial
+  describe. Test durations are medians over all native runs of the suite.
 
 The collector and blob reducer are trimmed from `measurements/` on the `s6-candidates` branch of
 [playwright-smart-parallelization](https://github.com/muratkeremozcan/playwright-smart-parallelization)
