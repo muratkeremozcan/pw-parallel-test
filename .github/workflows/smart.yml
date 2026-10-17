@@ -92,13 +92,14 @@ jobs:
       # No browser install: no test opens a browser, and native.yml installs none either.
       - run: npm ci
       - id: psp
-        uses: muratkeremozcan/playwright-smart-parallelization@c4397380bf518ee0970e1eb346fde580ffd0ab3b
+        uses: muratkeremozcan/playwright-smart-parallelization@410e55dc59543077e0501838bb44c4013c80b8e7
         with:
           enabled: ${{ inputs.enabled }}
           workers: ${{ inputs.workers }}
-          # One history per shard count and fullyParallel setting, so each arm warms from a cold
-          # run of its own. The key adds to the workers, which the Action keys on by itself.
-          history-key: shards-${{ inputs.shards }}${{ inputs.fully-parallel && '-fully-parallel' || '' }}
+          # One history per Action pin, shard count and fullyParallel setting, so each arm warms
+          # from a cold run of its own. The key adds to the workers, which the Action keys on by
+          # itself.
+          history-key: 410e55d-shards-${{ inputs.shards }}${{ inputs.fully-parallel && '-fully-parallel' || '' }}
           # Campaign runs of a pull request publish into its branch's own cache scope, so its
           # warm runs balance from the history its cold run published. On main this is auto.
           publish-history: 'true'
@@ -152,7 +153,7 @@ jobs:
         run: node scripts/check-test-count.ts merged-report.json "${{ needs.plan.outputs.total }}"
       - id: psp
         if: ${{ !cancelled() }}
-        uses: muratkeremozcan/playwright-smart-parallelization/finish@c4397380bf518ee0970e1eb346fde580ffd0ab3b
+        uses: muratkeremozcan/playwright-smart-parallelization/finish@410e55dc59543077e0501838bb44c4013c80b8e7
       # Keeps the Action's outputs after the run, for scripts/measure/collect.ts.
       - name: Record the Action's decision
         if: ${{ !cancelled() }}
