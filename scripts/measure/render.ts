@@ -5,7 +5,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { ARMS, type RunRecord } from './collect.ts';
+import { ARMS, SCHEMA, type RunRecord } from './collect.ts';
 
 const SHARD_JOB = /\b[Ss]hard (\d+)\/(\d+)\b/;
 
@@ -25,7 +25,7 @@ export type RunMetrics = {
   completion: number;
   queueMax: number;
   machine: number;
-  overlapping: string;
+  notes: string;
 };
 
 const seconds = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / 1000;
@@ -39,23 +39,37 @@ export const median = (values: number[]): number => {
 
 /** Arms in the order the summary lists them. */
 const ARM_ORDER = ['native', 'smart (cold start)', 'smart', 'rollback'];
+/** Orders arms by kind, then by the first run of each, so older Action pins list first. */
+const armRank = (arm: string) => ARM_ORDER.indexOf(arm.replace(/ @[0-9a-f]{7}$/, ''));
 
 /**
- * The arm a run counts toward. A smart run is `smart` only when the Action balanced it; with no
- * history it ran native sharding and counts as the cold start. The rollback must have run disabled.
+ * The arm a run counts toward, labelled with the Action commit for smart.yml runs. A smart run is
+ * `smart` only when the Action balanced it; with no history it ran native sharding and counts as
+ * the cold start. The rollback must have run disabled. Where the Action reported its own coverage
+ * check, a balanced or cold run must say ok and the rollback not checked.
  */
 export const armOf = (record: RunRecord): string => {
   if (record.mode === 'native') return 'native';
   const decided = record.action;
   if (!decided) throw new Error(`run ${record.run.id} has no Action decision`);
+  const at = ` @${decided.sha.slice(0, 7)}`;
+  const expectCoverage = (expected: string) => {
+    if (decided.coverage !== undefined && decided.coverage !== expected) {
+      throw new Error(`run ${record.run.id}: the Action reported coverage ${decided.coverage}`);
+    }
+  };
   if (record.mode === 'rollback') {
     if (decided.mode !== 'disabled') {
       throw new Error(`rollback run ${record.run.id} ran ${decided.mode}, not disabled`);
     }
-    return 'rollback';
+    expectCoverage('not checked');
+    return `rollback${at}`;
   }
-  if (decided.mode === 'balanced') return 'smart';
-  if (decided.mode === 'native' && decided.reason === 'no history yet') return 'smart (cold start)';
+  expectCoverage('ok');
+  if (decided.mode === 'balanced') return `smart${at}`;
+  if (decided.mode === 'native' && decided.reason === 'no history yet') {
+    return `smart (cold start)${at}`;
+  }
   throw new Error(`smart run ${record.run.id} ran ${decided.mode}: ${decided.reason}`);
 };
 
@@ -92,7 +106,13 @@ export const executedTests = (record: RunRecord): Set<string> => {
   return new Set(runs.keys());
 };
 
+/** A shard job that waited longer than this to start is called out in the run's notes. */
+const SLOW_START_SECONDS = 30;
+
 export const metricsOf = (record: RunRecord): RunMetrics => {
+  if (record.schema !== SCHEMA) {
+    throw new Error(`run ${record.run.id} has record schema ${record.schema}, expected ${SCHEMA}`);
+  }
   if (
     !ARMS[record.mode] ||
     record.run.workflowPath !== ARMS[record.mode].workflow ||
@@ -131,6 +151,7 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
   const jobSeconds = shardJobs.map(({ job }) => seconds(job.startedAt, job.completedAt));
   const playwrightSeconds = record.shards.map((shard) => shard.run.duration / 1000);
   const starts = record.jobs.map((job) => Date.parse(job.startedAt));
+  const queueMax = Math.max(...shardJobs.map(({ job }) => seconds(job.createdAt, job.startedAt)));
   const ends = record.jobs.map((job) => Date.parse(job.completedAt));
   return {
     arm: armOf(record),
@@ -146,14 +167,18 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
     slowestPlaywright: Math.max(...playwrightSeconds),
     playwrightSpread: Math.max(...playwrightSeconds) - Math.min(...playwrightSeconds),
     completion: (Math.max(...ends) - Math.min(...starts)) / 1000,
-    queueMax: Math.max(...shardJobs.map(({ job }) => seconds(job.createdAt, job.startedAt))),
+    queueMax,
     machine: jobSeconds.reduce((sum, value) => sum + value, 0),
-    overlapping:
-      record.run.overlappingRuns.length === 0
-        ? 'none'
-        : record.run.overlappingRuns
-            .map((run) => `${run.id} (${run.workflowPath.split('/').pop()}, ${run.event})`)
-            .join(', '),
+    notes:
+      [
+        ...record.run.overlappingRuns.map(
+          (run) => `overlapped ${run.id} (${run.workflowPath.split('/').pop()}, ${run.event})`,
+        ),
+        ...(queueMax > SLOW_START_SECONDS
+          ? [`a shard waited ${queueMax.toFixed(0)} s to start`]
+          : []),
+        ...(record.run.headBranch !== 'main' ? [`ran on ${record.run.headBranch}`] : []),
+      ].join('; ') || 'none',
   };
 };
 
@@ -242,7 +267,12 @@ export const render = (records: RunRecord[]): string => {
   const ordered = [...groups.entries()].sort(([a], [b]) => {
     const [armA, countA] = a.split('|');
     const [armB, countB] = b.split('|');
-    return Number(countA) - Number(countB) || ARM_ORDER.indexOf(armA) - ARM_ORDER.indexOf(armB);
+    return (
+      Number(countA) - Number(countB) ||
+      armRank(armA) - armRank(armB) ||
+      Math.min(...groups.get(a)!.map((r) => r.runId)) -
+        Math.min(...groups.get(b)!.map((r) => r.runId))
+    );
   });
   const nativeMedian = (count: string, pick: (m: RunMetrics) => number) => {
     const runs = groups.get(`native|${count}`);
@@ -280,7 +310,7 @@ export const render = (records: RunRecord[]): string => {
       'slowest shard’s Playwright time. "vs native" compares a median with the native median at ' +
       'the same shard count. `smart` runs are the ones the Action balanced from its history; the ' +
       'cold start is the first smart run, which had no history and ran native sharding; ' +
-      '`rollback` ran the smart workflow with `enabled: false`.',
+      '`rollback` ran the smart workflow with `enabled: false`. `@sha` is the Action commit.',
     '',
     '| Arm | Shards | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time |',
     '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
@@ -332,16 +362,17 @@ export const render = (records: RunRecord[]): string => {
     '',
     'Completion runs from the first job start to the last job end. Queue is the longest wait of a ' +
       'shard job between creation and start. Machine time is the sum of the shard job durations. ' +
-      'Overlapping runs are other runs of the repository whose jobs ran during this run, ' +
-      'sharing the runner pool.',
+      'Notes name other runs of the repository whose jobs ran during this run and shared the ' +
+      `runner pool, a shard job that waited more than ${SLOW_START_SECONDS} s to start, and a run ` +
+      'dispatched from a branch other than main.',
     '',
-    '| Arm | Shards | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time | Overlapping runs |',
+    '| Arm | Shards | Run | Commit | Playwright per shard | Jobs per shard | Completion | Queue (max) | Machine time | Notes |',
     '| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
     ...metrics.map(
       (m) =>
         `| ${m.arm} | ${m.shardCount} | [${m.runId}](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/${m.runId}) | ` +
         `\`${m.headSha.slice(0, 7)}\` | ${m.shardPlaywrightSeconds.map((v) => v.toFixed(1)).join(' / ')} | ` +
-        `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.overlapping} |`,
+        `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.notes} |`,
     ),
     '',
   );

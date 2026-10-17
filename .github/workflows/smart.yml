@@ -40,10 +40,12 @@ jobs:
     outputs:
       matrix: ${{ steps.psp.outputs.matrix }}
       plan: ${{ steps.psp.outputs.plan }}
+      mode: ${{ steps.psp.outputs.mode }}
+      reason: ${{ steps.psp.outputs.reason }}
     steps:
       - uses: actions/checkout@v7
       - id: psp
-        uses: muratkeremozcan/playwright-smart-parallelization@063aba85b7da2bc9f143b653b093160a77783a09
+        uses: muratkeremozcan/playwright-smart-parallelization@01187a8ec584eff18c9c7b53e6e957781f05fe67
         with:
           phase: prepare
           shards: ${{ inputs.shards }}
@@ -66,7 +68,7 @@ jobs:
           cache: npm
       # No browser install: no test opens a browser, and native.yml installs none either.
       - run: npm ci
-      - uses: muratkeremozcan/playwright-smart-parallelization@063aba85b7da2bc9f143b653b093160a77783a09
+      - uses: muratkeremozcan/playwright-smart-parallelization@01187a8ec584eff18c9c7b53e6e957781f05fe67
         with:
           phase: run
           plan: ${{ needs.prepare.outputs.plan }}
@@ -79,7 +81,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: muratkeremozcan/playwright-smart-parallelization@063aba85b7da2bc9f143b653b093160a77783a09
+      - id: psp
+        uses: muratkeremozcan/playwright-smart-parallelization@01187a8ec584eff18c9c7b53e6e957781f05fe67
         with:
           phase: finish
           plan: ${{ needs.prepare.outputs.plan }}
+      # Keeps the Action's outputs after the run, for scripts/measure/collect.ts.
+      - name: Record the Action's decision
+        if: ${{ !cancelled() }}
+        env:
+          PREPARE_MODE: ${{ needs.prepare.outputs.mode }}
+          PREPARE_REASON: ${{ needs.prepare.outputs.reason }}
+          FINISH_MODE: ${{ steps.psp.outputs.mode }}
+          COVERAGE: ${{ steps.psp.outputs.coverage }}
+          HISTORY: ${{ steps.psp.outputs.history }}
+          OVERHEAD_MS: ${{ steps.psp.outputs.overhead-ms }}
+        run: |
+          mkdir -p psp-decision
+          node -e '
+            const e = process.env;
+            const decision = {
+              mode: e.PREPARE_MODE, reason: e.PREPARE_REASON, finishMode: e.FINISH_MODE,
+              coverage: e.COVERAGE, history: e.HISTORY,
+              overheadMs: e.OVERHEAD_MS === "" ? null : Number(e.OVERHEAD_MS),
+            };
+            require("fs").writeFileSync("psp-decision/decision.json", JSON.stringify(decision) + "\n");
+          '
+          cat psp-decision/decision.json
+      - name: Upload the Action's decision
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: psp-decision
+          path: psp-decision/
+          retention-days: 30

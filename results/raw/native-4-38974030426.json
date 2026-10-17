@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "repo": "muratkeremozcan/pw-parallel-test",
   "mode": "native",
   "run": {
@@ -17,6 +17,7 @@
     "updatedAt": "2026-10-16T22:13:10Z"
   },
   "shardCount": 4,
+  "action": null,
   "jobs": [
     {
       "id": 117219036207,
