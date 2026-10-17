@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { reduceBlob, type ShardReport } from './blob.ts';
 
-export const SCHEMA = 1;
+export const SCHEMA = 2;
 const REPO = 'muratkeremozcan/pw-parallel-test';
 const MAX_BUFFER = 256 * 1024 * 1024;
 const PAGE_SIZE = 100;
@@ -31,6 +31,9 @@ export type Arm = {
   inputs: Record<string, string>;
   blob: RegExp;
 };
+// 063aba8 named a shard's blob psp-blob-<key>-<run>-<shard>-attempt-<n>; 01187a8 names it
+// blob-report-<key>-<shard>-attempt-<n>.
+const SMART_BLOB = /^(?:psp-blob-[0-9a-f]{12}-\d+|blob-report-[0-9a-f]{12})-(\d+)-attempt-1$/;
 export const ARMS: Record<string, Arm> = {
   native: {
     workflow: '.github/workflows/native.yml',
@@ -42,17 +45,20 @@ export const ARMS: Record<string, Arm> = {
     workflow: '.github/workflows/smart.yml',
     title: /^Smart shards (\d+) enabled=true(?: |$)/,
     inputs: { enabled: 'true' },
-    blob: /^psp-blob-[0-9a-f]+-\d+-(\d+)-attempt-1$/,
+    blob: SMART_BLOB,
   },
   rollback: {
     workflow: '.github/workflows/smart.yml',
     title: /^Smart shards (\d+) enabled=false(?: |$)/,
     inputs: { enabled: 'false' },
-    blob: /^psp-blob-[0-9a-f]+-\d+-(\d+)-attempt-1$/,
+    blob: SMART_BLOB,
   },
 };
 /** The Action's decision line in the prepare job log. */
 const ACTION_MODE = /mode (balanced|native|disabled) for all \d+ shards: (.*)$/m;
+/** The one Action commit whose decision is read from the prepare log. */
+const LOG_ONLY_PIN = '063aba85b7da2bc9f143b653b093160a77783a09';
+const ACTION_USES = /uses: muratkeremozcan\/playwright-smart-parallelization@([0-9a-f]{40})/g;
 
 export type JobRecord = {
   id: number;
@@ -86,7 +92,16 @@ export type RunRecord = {
   };
   shardCount: number;
   /** The mode playwright-smart-parallelization chose in its prepare job; null for native.yml. */
-  action: { mode: string; reason: string } | null;
+  action: {
+    /** The Action commit smart.yml pins at the run's commit. */
+    sha: string;
+    mode: string;
+    reason: string;
+    /** From the psp-decision artifact; absent for runs on Actions without these outputs. */
+    coverage?: string;
+    history?: string;
+    overheadMs?: number | null;
+  } | null;
   jobs: JobRecord[];
   shards: ShardReport[];
 };
@@ -110,6 +125,18 @@ const paginate = <T>(endpoint: string, key: string, query = ''): T[] => {
       }
       return items;
     }
+  }
+};
+
+/** Reads one file out of an artifact zip. */
+const readArtifactFile = (artifactId: number, file: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), 'artifact-'));
+  try {
+    const zip = join(dir, 'artifact.zip');
+    writeFileSync(zip, gh(['api', `repos/${REPO}/actions/artifacts/${artifactId}/zip`]));
+    return execFileSync('unzip', ['-p', zip, file], { encoding: 'utf8', maxBuffer: MAX_BUFFER });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 };
 
@@ -213,10 +240,11 @@ export const collect = (runId: number, mode: string): RunRecord => {
     runnerName: job.runner_name,
     labels: job.labels,
   }));
-  const artifacts = paginate<Record<string, any>>(
+  const allArtifacts = paginate<Record<string, any>>(
     `repos/${REPO}/actions/runs/${runId}/artifacts`,
     'artifacts',
-  )
+  );
+  const artifacts = allArtifacts
     .map((artifact) => ({ artifact, match: arm.blob.exec(artifact.name) }))
     .filter((entry) => entry.match)
     .map(({ artifact, match }) => ({ artifact, shard: Number(match![1]) }))
@@ -239,12 +267,41 @@ export const collect = (runId: number, mode: string): RunRecord => {
 
   let action: RunRecord['action'] = null;
   if (arm.workflow.endsWith('/smart.yml')) {
-    const prepare = jobs.find((job) => job.name === 'Prepare');
-    if (!prepare) throw new Error(`run ${runId} has no Prepare job`);
-    const log = gh(['api', `repos/${REPO}/actions/jobs/${prepare.id}/logs`]).toString('utf8');
-    const decided = ACTION_MODE.exec(log);
-    if (!decided) throw new Error(`run ${runId} prepare log states no mode`);
-    action = { mode: decided[1], reason: decided[2].trim() };
+    const workflow = gh([
+      'api',
+      '-H',
+      'Accept: application/vnd.github.raw',
+      `repos/${REPO}/contents/${arm.workflow}?ref=${run.head_sha}`,
+    ]).toString('utf8');
+    const pins = [...workflow.matchAll(ACTION_USES)].map((match) => match[1]);
+    if (pins.length === 0 || new Set(pins).size !== 1) {
+      throw new Error(`run ${runId} smart.yml pins the Action ${pins.length} ways: ${pins}`);
+    }
+    const decision = allArtifacts.find((artifact) => artifact.name === 'psp-decision');
+    if (decision) {
+      const text = readArtifactFile(decision.id, 'decision.json');
+      const parsed = JSON.parse(text) as Record<string, any>;
+      action = {
+        sha: pins[0],
+        mode: parsed.mode,
+        reason: parsed.reason,
+        coverage: parsed.coverage,
+        history: parsed.history,
+        overheadMs: parsed.overheadMs,
+      };
+    } else {
+      // 063aba8 had no mode output, so its prepare log is the record. A later pin without the
+      // artifact lost its decision, and its coverage would go unchecked.
+      if (pins[0] !== LOG_ONLY_PIN) {
+        throw new Error(`run ${runId} on ${pins[0]} has no psp-decision artifact`);
+      }
+      const prepare = jobs.find((job) => job.name === 'Prepare');
+      if (!prepare) throw new Error(`run ${runId} has no Prepare job`);
+      const log = gh(['api', `repos/${REPO}/actions/jobs/${prepare.id}/logs`]).toString('utf8');
+      const decided = ACTION_MODE.exec(log);
+      if (!decided) throw new Error(`run ${runId} prepare log states no mode`);
+      action = { sha: pins[0], mode: decided[1], reason: decided[2].trim() };
+    }
   }
 
   return {
