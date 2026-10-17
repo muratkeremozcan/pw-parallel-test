@@ -127,11 +127,13 @@ const main = async () => {
     const [mode, count, perShard] = arm.split(':');
     const shards = Number(count);
     const workers = perShard === undefined ? null : Number(perShard);
+    // The bounds of the workflows' own validation, so a bad arm fails before any dispatch.
     if (
       !ARMS[mode] ||
       !Number.isInteger(shards) ||
       shards < 1 ||
-      (workers !== null && (!Number.isInteger(workers) || workers < 1))
+      shards > 16 ||
+      (workers !== null && (!Number.isInteger(workers) || workers < 1 || workers > 9))
     ) {
       throw new Error(`bad arm ${JSON.stringify(arm)}; expected <mode>:<shards>[:<workers>]`);
     }
