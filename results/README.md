@@ -21,7 +21,8 @@ repository root is rendered from those records only. No number is typed by hand.
   the rollback switch. The record keeps the mode the Action chose: `balanced` counts as the smart
   arm, `native` with no history as the cold start, and `disabled` as the rollback.
 - Both workflows take an optional `workers` input: native.yml passes it as `--workers`, smart.yml
-  as the Action's `workers` input, which adds `--workers` to `$PSP_ARGS`. The history key includes
+  as `--workers` and as the Action's `workers` input, which packs the plan for them, so a rollback
+  with its empty `$PSP_ARGS` keeps them too. The history key includes
   the workers, so each worker count starts with a cold run of its own.
 - Runs are dispatched one at a time, each only once no workflow run of the repository is active,
   and the next waits until the previous one completes, so

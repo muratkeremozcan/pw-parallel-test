@@ -20,7 +20,7 @@ on:
         type: boolean
         default: true
       workers:
-        description: Workers per shard, passed through the Action's workers input; empty keeps the config's 1
+        description: Workers per shard, passed as --workers and through the Action's workers input; empty keeps the config's 1
         type: string
         required: false
         default: ''
@@ -95,8 +95,11 @@ jobs:
           # Campaign runs of a pull request publish into its branch's own cache scope, so its
           # warm runs balance from the history its cold run published. On main this is auto.
           publish-history: 'true'
+      # The workers go in the command too: a rollback empties $PSP_ARGS, and the run keeps them.
       - name: Run tests
-        run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }} $PSP_ARGS
+        env:
+          WORKERS: ${{ inputs.workers && format('--workers={0}', inputs.workers) || '' }}
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }} $WORKERS $PSP_ARGS
       - name: Upload blob report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
