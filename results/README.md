@@ -9,13 +9,21 @@ repository root is rendered from those records only. No number is typed by hand.
   shard uploads a blob report; a merge job merges them and fails unless every test ran exactly once, and each setup test once per shard.
 - `.github/workflows/smart.yml` runs the same suite through
   [playwright-smart-parallelization](https://github.com/muratkeremozcan/playwright-smart-parallelization),
-  set up as its README shows. Campaign runs dispatch on `main`, so they publish the Action's
-  duration history. Confirmation runs of a newer Action pin dispatch from the pull request's
-  branch: under `publish-history: auto` a balanced one reads main's history and publishes none,
-  so its finish job skips the history write, and RESULTS.md notes it. A rollback reads and writes
-  no history on any branch. Its `enabled` input is the rollback switch. The record keeps the mode the Action's prepare job chose: `balanced`
-  counts as the smart arm, `native` with no history as the cold start, and `disabled` as the
-  rollback.
+  set up as its README shows. From Action 65d649d that is native.yml's shard job with the Action's
+  step before `npx playwright test --shard=i/N $PSP_ARGS`, native.yml's own blob upload and merge,
+  and the Action's optional finish in the merge job. Earlier pins ran the Action's prepare, run and
+  finish phases. Campaign runs of 063aba8 dispatched on `main` and published the Action's duration
+  history there; confirmation runs of 01187a8 and cfce541 dispatched from a pull request's branch
+  under `publish-history: auto`, read main's history and published none, and RESULTS.md notes
+  them. smart.yml at 65d649d sets `publish-history: true`, so runs dispatched from a pull request's
+  branch publish into that branch's own cache scope and its warm runs balance from the history its
+  cold run published. A rollback reads and writes no history on any branch. Its `enabled` input is
+  the rollback switch. The record keeps the mode the Action chose: `balanced` counts as the smart
+  arm, `native` with no history as the cold start, and `disabled` as the rollback.
+- Both workflows take an optional `workers` input: native.yml passes it as `--workers`, smart.yml
+  as `--workers` and as the Action's `workers` input, which packs the plan for them, so a rollback
+  with its empty `$PSP_ARGS` keeps them too. The history key includes
+  the workers, so each worker count starts with a cold run of its own.
 - Runs are dispatched one at a time, each only once no workflow run of the repository is active,
   and the next waits until the previous one completes, so
   measured runs never compete for runners. The workflow's concurrency group also keeps a second run from starting while one executes; it holds at most one waiting run, and a later dispatch cancels it.
@@ -42,6 +50,8 @@ repository root is rendered from those records only. No number is typed by hand.
 # dispatch, wait for and collect runs in order
 node scripts/measure/campaign.ts --arms native:4,native:8,native:4,native:8,native:4,native:8
 node scripts/measure/campaign.ts --arms smart:4,native:4,smart:4,native:8,smart:8,rollback:4
+# an arm takes an optional workers count, and --ref a branch
+node scripts/measure/campaign.ts --arms native:4:2,smart:4:2 --ref <branch>
 
 # collect one finished run
 node scripts/measure/collect.ts --run <run id> --mode native|smart|rollback
@@ -58,7 +68,7 @@ node scripts/measure/render.ts
 - Queue: the longest wait of a shard job between creation and start.
 - Machine time: the sum of shard job durations.
 - Ideal bound: the setup project's time, plus the larger of total test time divided by the shard
-  count and the longest indivisible unit. With `fullyParallel` off, a spec file is that unit. Test
+  count times the workers per shard and the longest indivisible unit. With `fullyParallel` off, a spec file is that unit. Test
   durations are medians over all native runs.
 
 The collector and blob reducer are trimmed from `measurements/` on the `s6-candidates` branch of

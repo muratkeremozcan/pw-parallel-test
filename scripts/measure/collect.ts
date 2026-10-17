@@ -21,8 +21,8 @@ const MAX_BUFFER = 256 * 1024 * 1024;
 const PAGE_SIZE = 100;
 
 /**
- * The measured arms: the workflow each dispatches, the run name that identifies the arm and its
- * shard count, the dispatch inputs, and the name of a shard's blob report artifact with its shard
+ * The measured arms: the workflow each dispatches, the run name that identifies the arm, its
+ * shard count and any workers input, the dispatch inputs, and the name of a shard's blob report artifact with its shard
  * number. A run that matches none of them is rejected.
  */
 export type Arm = {
@@ -32,24 +32,26 @@ export type Arm = {
   blob: RegExp;
 };
 // 063aba8 named a shard's blob psp-blob-<key>-<run>-<shard>-attempt-<n>; 01187a8 names it
-// blob-report-<key>-<shard>-attempt-<n>.
-const SMART_BLOB = /^(?:psp-blob-[0-9a-f]{12}-\d+|blob-report-[0-9a-f]{12})-(\d+)-attempt-1$/;
+// blob-report-<key>-<shard>-attempt-<n>; from 65d649d the Action uploads none, and smart.yml
+// uploads blob-report-<shard> as native.yml does.
+const SMART_BLOB =
+  /^(?:(?:psp-blob-[0-9a-f]{12}-\d+|blob-report-[0-9a-f]{12})-(\d+)-attempt-1|blob-report-(\d+))$/;
 export const ARMS: Record<string, Arm> = {
   native: {
     workflow: '.github/workflows/native.yml',
-    title: /^Native shards (\d+)(?: |$)/,
+    title: /^Native shards (\d+)(?: workers=(\d+))?(?: |$)/,
     inputs: {},
     blob: /^blob-report-(\d+)$/,
   },
   smart: {
     workflow: '.github/workflows/smart.yml',
-    title: /^Smart shards (\d+) enabled=true(?: |$)/,
+    title: /^Smart shards (\d+) enabled=true(?: workers=(\d+))?(?: |$)/,
     inputs: { enabled: 'true' },
     blob: SMART_BLOB,
   },
   rollback: {
     workflow: '.github/workflows/smart.yml',
-    title: /^Smart shards (\d+) enabled=false(?: |$)/,
+    title: /^Smart shards (\d+) enabled=false(?: workers=(\d+))?(?: |$)/,
     inputs: { enabled: 'false' },
     blob: SMART_BLOB,
   },
@@ -91,7 +93,9 @@ export type RunRecord = {
     updatedAt: string;
   };
   shardCount: number;
-  /** The mode playwright-smart-parallelization chose in its prepare job; null for native.yml. */
+  /** The workers input of the dispatch; null when the run kept the config's workers. */
+  workersInput?: number | null;
+  /** The mode playwright-smart-parallelization chose; null for native.yml. */
   action: {
     /** The Action commit smart.yml pins at the run's commit. */
     sha: string;
@@ -227,6 +231,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
     );
   }
   const shardCount = Number(title[1]);
+  const workersInput = title[2] ? Number(title[2]) : null;
   const jobs = paginate<Record<string, any>>(
     `repos/${REPO}/actions/runs/${runId}/jobs`,
     'jobs',
@@ -247,7 +252,7 @@ export const collect = (runId: number, mode: string): RunRecord => {
   const artifacts = allArtifacts
     .map((artifact) => ({ artifact, match: arm.blob.exec(artifact.name) }))
     .filter((entry) => entry.match)
-    .map(({ artifact, match }) => ({ artifact, shard: Number(match![1]) }))
+    .map(({ artifact, match }) => ({ artifact, shard: Number(match![1] ?? match![2]) }))
     .sort((a, b) => a.shard - b.shard);
   if (artifacts.some(({ artifact }) => artifact.expired)) {
     throw new Error(`run ${runId} has expired blob report artifacts`);
@@ -323,16 +328,20 @@ export const collect = (runId: number, mode: string): RunRecord => {
       updatedAt: run.updated_at,
     },
     shardCount,
+    workersInput,
     action,
     jobs,
     shards,
   };
 };
 
-/** Writes a record as results/raw/<mode>-<shards>-<run id>.json and returns the path. */
+/**
+ * Writes a record as results/raw/<mode>-<shards>[-w<workers>]-<run id>.json and returns the path.
+ */
 export const writeRecord = (record: RunRecord, outDir: string): string => {
   mkdirSync(outDir, { recursive: true });
-  const file = join(outDir, `${record.mode}-${record.shardCount}-${record.run.id}.json`);
+  const workers = record.workersInput ? `-w${record.workersInput}` : '';
+  const file = join(outDir, `${record.mode}-${record.shardCount}${workers}-${record.run.id}.json`);
   writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`);
   return file;
 };

@@ -1,0 +1,4041 @@
+{
+  "schema": 2,
+  "repo": "muratkeremozcan/pw-parallel-test",
+  "mode": "smart",
+  "run": {
+    "id": 39024686792,
+    "attempt": 1,
+    "workflowPath": ".github/workflows/smart.yml",
+    "event": "workflow_dispatch",
+    "headBranch": "one-block-interface",
+    "headSha": "93584b64fcd8850e155fb4ce312dbb118c7b7705",
+    "suiteFingerprint": "tests@3259c416b64e playwright.config.ts@372695034943 package-lock.json@402b909d1dbd",
+    "overlappingRuns": [],
+    "conclusion": "success",
+    "createdAt": "2026-10-17T10:23:07Z",
+    "runStartedAt": "2026-10-17T10:23:07Z",
+    "updatedAt": "2026-10-17T10:25:50Z"
+  },
+  "shardCount": 4,
+  "workersInput": null,
+  "action": {
+    "sha": "65d649d62779c544dd9d4f358f129a5651d6e063",
+    "mode": "balanced",
+    "reason": "history entry psp-history-v2-2339751a37c673df499f4c84-20261017-4",
+    "coverage": "ok",
+    "overheadMs": 17032
+  },
+  "jobs": [
+    {
+      "id": 117373245831,
+      "name": "Plan",
+      "conclusion": "success",
+      "createdAt": "2026-10-17T10:23:08Z",
+      "startedAt": "2026-10-17T10:23:09Z",
+      "completedAt": "2026-10-17T10:23:12Z",
+      "runnerName": "GitHub Actions 1000139888",
+      "labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "id": 117373258762,
+      "name": "Shard 3/4",
+      "conclusion": "success",
+      "createdAt": "2026-10-17T10:23:12Z",
+      "startedAt": "2026-10-17T10:23:13Z",
+      "completedAt": "2026-10-17T10:25:25Z",
+      "runnerName": "GitHub Actions 1000139889",
+      "labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "id": 117373258774,
+      "name": "Shard 2/4",
+      "conclusion": "success",
+      "createdAt": "2026-10-17T10:23:12Z",
+      "startedAt": "2026-10-17T10:23:13Z",
+      "completedAt": "2026-10-17T10:25:19Z",
+      "runnerName": "GitHub Actions 1000139890",
+      "labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "id": 117373258807,
+      "name": "Shard 1/4",
+      "conclusion": "success",
+      "createdAt": "2026-10-17T10:23:12Z",
+      "startedAt": "2026-10-17T10:23:14Z",
+      "completedAt": "2026-10-17T10:25:22Z",
+      "runnerName": "GitHub Actions 1000139892",
+      "labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "id": 117373258809,
+      "name": "Shard 4/4",
+      "conclusion": "success",
+      "createdAt": "2026-10-17T10:23:12Z",
+      "startedAt": "2026-10-17T10:23:13Z",
+      "completedAt": "2026-10-17T10:25:18Z",
+      "runnerName": "GitHub Actions 1000139891",
+      "labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "id": 117373664508,
+      "name": "Merge reports",
+      "conclusion": "success",
+      "createdAt": "2026-10-17T10:25:25Z",
+      "startedAt": "2026-10-17T10:25:27Z",
+      "completedAt": "2026-10-17T10:25:50Z",
+      "runnerName": "GitHub Actions 1000139894",
+      "labels": [
+        "ubuntu-latest"
+      ]
+    }
+  ],
+  "shards": [
+    {
+      "playwrightVersion": "1.64.1",
+      "node": "24.21",
+      "shard": {
+        "current": 1,
+        "total": 4
+      },
+      "workers": 1,
+      "projects": [
+        {
+          "name": "setup",
+          "dependencies": [],
+          "retries": 0
+        },
+        {
+          "name": "chromium",
+          "dependencies": [
+            "setup"
+          ],
+          "retries": 0
+        }
+      ],
+      "run": {
+        "status": "passed",
+        "startTime": 1792232606666,
+        "duration": 109758.411
+      },
+      "tests": [
+        {
+          "id": "24f99c508366309d4e2b-ed74fb7495df8d8bb16f",
+          "project": "setup",
+          "file": "setup/environment.setup.ts",
+          "titlePath": [],
+          "title": "prepare environment",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 3002
+            }
+          ]
+        },
+        {
+          "id": "63f4d6a426789a3fd52f-a1c1151d114f48f5f97e",
+          "project": "chromium",
+          "file": "e2e/cart-badges.spec.ts",
+          "titlePath": [
+            "cart badges"
+          ],
+          "title": "cart badges case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1904
+            }
+          ]
+        },
+        {
+          "id": "63f4d6a426789a3fd52f-aaf3dba95d190af1a392",
+          "project": "chromium",
+          "file": "e2e/cart-badges.spec.ts",
+          "titlePath": [
+            "cart badges"
+          ],
+          "title": "cart badges case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "63f4d6a426789a3fd52f-13ff6427876c27ab70ff",
+          "project": "chromium",
+          "file": "e2e/cart-badges.spec.ts",
+          "titlePath": [
+            "cart badges"
+          ],
+          "title": "cart badges case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "63f4d6a426789a3fd52f-7fde28820017d494472a",
+          "project": "chromium",
+          "file": "e2e/cart-badges.spec.ts",
+          "titlePath": [
+            "cart badges"
+          ],
+          "title": "cart badges case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "63f4d6a426789a3fd52f-266d5ad41126330035a1",
+          "project": "chromium",
+          "file": "e2e/cart-badges.spec.ts",
+          "titlePath": [
+            "cart badges"
+          ],
+          "title": "cart badges case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1501
+            }
+          ]
+        },
+        {
+          "id": "63f4d6a426789a3fd52f-deb49f13f77858f5c02f",
+          "project": "chromium",
+          "file": "e2e/cart-badges.spec.ts",
+          "titlePath": [
+            "cart badges"
+          ],
+          "title": "cart badges case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "63f4d6a426789a3fd52f-ea09947954eeeea64df8",
+          "project": "chromium",
+          "file": "e2e/cart-badges.spec.ts",
+          "titlePath": [
+            "cart badges"
+          ],
+          "title": "cart badges case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1400
+            }
+          ]
+        },
+        {
+          "id": "f17667c3e2adb3cdc80a-1ea846246b172b28e7ba",
+          "project": "chromium",
+          "file": "e2e/checkout-payments.spec.ts",
+          "titlePath": [
+            "checkout payments"
+          ],
+          "title": "checkout payments case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8408
+            }
+          ]
+        },
+        {
+          "id": "f17667c3e2adb3cdc80a-97f8d4b38d8dbfdf5b90",
+          "project": "chromium",
+          "file": "e2e/checkout-payments.spec.ts",
+          "titlePath": [
+            "checkout payments"
+          ],
+          "title": "checkout payments case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 11600
+            }
+          ]
+        },
+        {
+          "id": "f17667c3e2adb3cdc80a-d24701b08f8dc6c29fe8",
+          "project": "chromium",
+          "file": "e2e/checkout-payments.spec.ts",
+          "titlePath": [
+            "checkout payments"
+          ],
+          "title": "checkout payments case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 7303
+            }
+          ]
+        },
+        {
+          "id": "f17667c3e2adb3cdc80a-b6b244dbeafb850b1583",
+          "project": "chromium",
+          "file": "e2e/checkout-payments.spec.ts",
+          "titlePath": [
+            "checkout payments"
+          ],
+          "title": "checkout payments case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 6501
+            }
+          ]
+        },
+        {
+          "id": "f17667c3e2adb3cdc80a-cd7761ec5d3b35b6c289",
+          "project": "chromium",
+          "file": "e2e/checkout-payments.spec.ts",
+          "titlePath": [
+            "checkout payments"
+          ],
+          "title": "checkout payments case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8901
+            }
+          ]
+        },
+        {
+          "id": "f17667c3e2adb3cdc80a-261ea04d97bb873427b8",
+          "project": "chromium",
+          "file": "e2e/checkout-payments.spec.ts",
+          "titlePath": [
+            "checkout payments"
+          ],
+          "title": "checkout payments case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 12305
+            }
+          ]
+        },
+        {
+          "id": "c3965fd9cb737d399ef3-68fb712337de4f36f722",
+          "project": "chromium",
+          "file": "e2e/inbox-threads.spec.ts",
+          "titlePath": [
+            "inbox threads"
+          ],
+          "title": "inbox threads case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1301
+            }
+          ]
+        },
+        {
+          "id": "c3965fd9cb737d399ef3-032e7713142b73da1a28",
+          "project": "chromium",
+          "file": "e2e/inbox-threads.spec.ts",
+          "titlePath": [
+            "inbox threads"
+          ],
+          "title": "inbox threads case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1700
+            }
+          ]
+        },
+        {
+          "id": "c3965fd9cb737d399ef3-6144f903d405f9c99ef4",
+          "project": "chromium",
+          "file": "e2e/inbox-threads.spec.ts",
+          "titlePath": [
+            "inbox threads"
+          ],
+          "title": "inbox threads case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "c3965fd9cb737d399ef3-048772f917e784b78eca",
+          "project": "chromium",
+          "file": "e2e/inbox-threads.spec.ts",
+          "titlePath": [
+            "inbox threads"
+          ],
+          "title": "inbox threads case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1201
+            }
+          ]
+        },
+        {
+          "id": "c3965fd9cb737d399ef3-40774482a7f9ef5bc7b5",
+          "project": "chromium",
+          "file": "e2e/inbox-threads.spec.ts",
+          "titlePath": [
+            "inbox threads"
+          ],
+          "title": "inbox threads case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1101
+            }
+          ]
+        },
+        {
+          "id": "c3965fd9cb737d399ef3-44d05990913545b24765",
+          "project": "chromium",
+          "file": "e2e/inbox-threads.spec.ts",
+          "titlePath": [
+            "inbox threads"
+          ],
+          "title": "inbox threads case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-2b576d7b31f4fd48cc30",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 201
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-dbbf1c34dec8a64d0586",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-fa2bf64779c6d60bcf1e",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-7efddba1e09687ad14b6",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 300
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-63ecdfeae2b84d42140f",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 601
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-134fc0ea7906cfcbcbd5",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-31151d10fcfc7c05a1a7",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1601
+            }
+          ]
+        },
+        {
+          "id": "00fe881d73ae26681e16-0024fc3e2e618161ee5e",
+          "project": "chromium",
+          "file": "e2e/onboarding-tour.spec.ts",
+          "titlePath": [
+            "onboarding tour"
+          ],
+          "title": "onboarding tour case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1902
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-fb1c01426c6325a457d4",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-250ad0d047eb7dde21d8",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1301
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-c4695e2002ed9bcea64c",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-165341a97fb31b7f7da0",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1300
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-8a08fa240ae8fd456a01",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-c26d8f8b45af167ba90a",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 601
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-1ba8ac08701f2b6fc6da",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2002
+            }
+          ]
+        },
+        {
+          "id": "ae9fb2e5301d1466e775-4336a54ec05d480723c3",
+          "project": "chromium",
+          "file": "e2e/support-faq.spec.ts",
+          "titlePath": [
+            "support faq"
+          ],
+          "title": "support faq case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1201
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-f480a3773947a16c24f8",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1502
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-2bfff5b2c9bd37bbddb5",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1702
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-c1e869cae18a1c616157",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1200
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-f68c7f3f13a3e00e70d5",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-d31dd3b26a079265b5d0",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1201
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-215ee20da6de3e10d027",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1802
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-8d45bd66013368428013",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "79fbe75ed9147d10c2fc-111cbfa65fc0cc8b257b",
+          "project": "chromium",
+          "file": "e2e/support-tickets.spec.ts",
+          "titlePath": [
+            "support tickets"
+          ],
+          "title": "support tickets case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-b14f696ee3f62434723e",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-82e38a6e6d3b0d37aab7",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-cedf87a31bd2f5d94999",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 999
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-d2f2f7164af193b78efe",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1902
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-c363eea37dee43e424cb",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1901
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-0bcc464702da16badaee",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1201
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-fd4f20dabe879c5952b0",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-7d8a3f9d283be8bd5faf",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "6bdc0d3393ba92240bdf-471816f28182bb400b5c",
+          "project": "chromium",
+          "file": "e2e/wishlist-share.spec.ts",
+          "titlePath": [
+            "wishlist share"
+          ],
+          "title": "wishlist share case 09",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1400
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playwrightVersion": "1.64.1",
+      "node": "24.21",
+      "shard": {
+        "current": 2,
+        "total": 4
+      },
+      "workers": 1,
+      "projects": [
+        {
+          "name": "setup",
+          "dependencies": [],
+          "retries": 0
+        },
+        {
+          "name": "chromium",
+          "dependencies": [
+            "setup"
+          ],
+          "retries": 0
+        }
+      ],
+      "run": {
+        "status": "passed",
+        "startTime": 1792232605073,
+        "duration": 110178.09400000001
+      },
+      "tests": [
+        {
+          "id": "24f99c508366309d4e2b-ed74fb7495df8d8bb16f",
+          "project": "setup",
+          "file": "setup/environment.setup.ts",
+          "titlePath": [],
+          "title": "prepare environment",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 3006
+            }
+          ]
+        },
+        {
+          "id": "0dcf0207ef8a503ecbc9-b458fc93a0afdcbfc7af",
+          "project": "chromium",
+          "file": "e2e/admin-roles.spec.ts",
+          "titlePath": [
+            "admin roles"
+          ],
+          "title": "admin roles case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 602
+            }
+          ]
+        },
+        {
+          "id": "0dcf0207ef8a503ecbc9-f519219e745f508c751b",
+          "project": "chromium",
+          "file": "e2e/admin-roles.spec.ts",
+          "titlePath": [
+            "admin roles"
+          ],
+          "title": "admin roles case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 902
+            }
+          ]
+        },
+        {
+          "id": "0dcf0207ef8a503ecbc9-d84ddca81f5e9d2b8099",
+          "project": "chromium",
+          "file": "e2e/admin-roles.spec.ts",
+          "titlePath": [
+            "admin roles"
+          ],
+          "title": "admin roles case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 602
+            }
+          ]
+        },
+        {
+          "id": "0dcf0207ef8a503ecbc9-4cff3e912e19db007ccf",
+          "project": "chromium",
+          "file": "e2e/admin-roles.spec.ts",
+          "titlePath": [
+            "admin roles"
+          ],
+          "title": "admin roles case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 301
+            }
+          ]
+        },
+        {
+          "id": "0dcf0207ef8a503ecbc9-308f0a94c59f9066a10a",
+          "project": "chromium",
+          "file": "e2e/admin-roles.spec.ts",
+          "titlePath": [
+            "admin roles"
+          ],
+          "title": "admin roles case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1702
+            }
+          ]
+        },
+        {
+          "id": "0dcf0207ef8a503ecbc9-2ab1dbcd57a537418156",
+          "project": "chromium",
+          "file": "e2e/admin-roles.spec.ts",
+          "titlePath": [
+            "admin roles"
+          ],
+          "title": "admin roles case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1903
+            }
+          ]
+        },
+        {
+          "id": "79672760599109f4735d-53f53977c19e3e6771d1",
+          "project": "chromium",
+          "file": "e2e/cart-items.spec.ts",
+          "titlePath": [
+            "cart items"
+          ],
+          "title": "cart items case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1102
+            }
+          ]
+        },
+        {
+          "id": "79672760599109f4735d-cb4c6b33d111f247a60b",
+          "project": "chromium",
+          "file": "e2e/cart-items.spec.ts",
+          "titlePath": [
+            "cart items"
+          ],
+          "title": "cart items case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1901
+            }
+          ]
+        },
+        {
+          "id": "79672760599109f4735d-cd21ec0f433ccfb3e270",
+          "project": "chromium",
+          "file": "e2e/cart-items.spec.ts",
+          "titlePath": [
+            "cart items"
+          ],
+          "title": "cart items case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1703
+            }
+          ]
+        },
+        {
+          "id": "79672760599109f4735d-dabf06f380abb2095694",
+          "project": "chromium",
+          "file": "e2e/cart-items.spec.ts",
+          "titlePath": [
+            "cart items"
+          ],
+          "title": "cart items case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1903
+            }
+          ]
+        },
+        {
+          "id": "79672760599109f4735d-04a3f006c992f37c42af",
+          "project": "chromium",
+          "file": "e2e/cart-items.spec.ts",
+          "titlePath": [
+            "cart items"
+          ],
+          "title": "cart items case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1201
+            }
+          ]
+        },
+        {
+          "id": "79672760599109f4735d-fab6d353929fe1814267",
+          "project": "chromium",
+          "file": "e2e/cart-items.spec.ts",
+          "titlePath": [
+            "cart items"
+          ],
+          "title": "cart items case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-10cd03462f7275f16544",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-236a3d24f90ce960e91c",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-f5266cfed5ab63e74634",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1902
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-1f670ea8ea62978f941f",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-19e3b3cd29c4d833ff84",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1101
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-de7c5d1da0dbccc21bca",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 601
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-9444cc8a4bad83adc5f8",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1702
+            }
+          ]
+        },
+        {
+          "id": "937b0fd50d53bd806dd1-3ed439c4df7bc225ce37",
+          "project": "chromium",
+          "file": "e2e/dashboard-widgets.spec.ts",
+          "titlePath": [
+            "dashboard widgets"
+          ],
+          "title": "dashboard widgets case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1402
+            }
+          ]
+        },
+        {
+          "id": "23b0953172f0891ebda3-ef0334fc9b45f72dd172",
+          "project": "chromium",
+          "file": "e2e/inbox-messages.spec.ts",
+          "titlePath": [
+            "inbox messages"
+          ],
+          "title": "inbox messages case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1401
+            }
+          ]
+        },
+        {
+          "id": "23b0953172f0891ebda3-5852d1c0cfcad911e1eb",
+          "project": "chromium",
+          "file": "e2e/inbox-messages.spec.ts",
+          "titlePath": [
+            "inbox messages"
+          ],
+          "title": "inbox messages case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1402
+            }
+          ]
+        },
+        {
+          "id": "23b0953172f0891ebda3-ebda0aaac68d85c8c6ca",
+          "project": "chromium",
+          "file": "e2e/inbox-messages.spec.ts",
+          "titlePath": [
+            "inbox messages"
+          ],
+          "title": "inbox messages case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1102
+            }
+          ]
+        },
+        {
+          "id": "23b0953172f0891ebda3-c3d80db9b9ccec859b68",
+          "project": "chromium",
+          "file": "e2e/inbox-messages.spec.ts",
+          "titlePath": [
+            "inbox messages"
+          ],
+          "title": "inbox messages case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 601
+            }
+          ]
+        },
+        {
+          "id": "23b0953172f0891ebda3-26eb111b2cba0502bdc3",
+          "project": "chromium",
+          "file": "e2e/inbox-messages.spec.ts",
+          "titlePath": [
+            "inbox messages"
+          ],
+          "title": "inbox messages case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "23b0953172f0891ebda3-1c5c398fd0da95a016b0",
+          "project": "chromium",
+          "file": "e2e/inbox-messages.spec.ts",
+          "titlePath": [
+            "inbox messages"
+          ],
+          "title": "inbox messages case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1502
+            }
+          ]
+        },
+        {
+          "id": "f557c2c8b71f0dc07cbe-7f5aa5f60912843dd969",
+          "project": "chromium",
+          "file": "e2e/notifications-bell.spec.ts",
+          "titlePath": [
+            "notifications bell"
+          ],
+          "title": "notifications bell case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1102
+            }
+          ]
+        },
+        {
+          "id": "f557c2c8b71f0dc07cbe-f3e2ab12432a25509e5f",
+          "project": "chromium",
+          "file": "e2e/notifications-bell.spec.ts",
+          "titlePath": [
+            "notifications bell"
+          ],
+          "title": "notifications bell case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 200
+            }
+          ]
+        },
+        {
+          "id": "f557c2c8b71f0dc07cbe-7a275b02a67de3aaf8c9",
+          "project": "chromium",
+          "file": "e2e/notifications-bell.spec.ts",
+          "titlePath": [
+            "notifications bell"
+          ],
+          "title": "notifications bell case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 200
+            }
+          ]
+        },
+        {
+          "id": "f557c2c8b71f0dc07cbe-bddc07b7b1806cec00a9",
+          "project": "chromium",
+          "file": "e2e/notifications-bell.spec.ts",
+          "titlePath": [
+            "notifications bell"
+          ],
+          "title": "notifications bell case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 900
+            }
+          ]
+        },
+        {
+          "id": "f557c2c8b71f0dc07cbe-0e33d3fb09e29aaffa63",
+          "project": "chromium",
+          "file": "e2e/notifications-bell.spec.ts",
+          "titlePath": [
+            "notifications bell"
+          ],
+          "title": "notifications bell case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "f557c2c8b71f0dc07cbe-c4e65c426af569fbb393",
+          "project": "chromium",
+          "file": "e2e/notifications-bell.spec.ts",
+          "titlePath": [
+            "notifications bell"
+          ],
+          "title": "notifications bell case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1101
+            }
+          ]
+        },
+        {
+          "id": "f557c2c8b71f0dc07cbe-b7928ca082bd4a92b086",
+          "project": "chromium",
+          "file": "e2e/notifications-bell.spec.ts",
+          "titlePath": [
+            "notifications bell"
+          ],
+          "title": "notifications bell case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "3133db1e9338f71e4609-c829cc928292de712827",
+          "project": "chromium",
+          "file": "e2e/reports-export.spec.ts",
+          "titlePath": [
+            "reports export"
+          ],
+          "title": "reports export case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 11005
+            }
+          ]
+        },
+        {
+          "id": "3133db1e9338f71e4609-7279b10c8b0f7ef19dc1",
+          "project": "chromium",
+          "file": "e2e/reports-export.spec.ts",
+          "titlePath": [
+            "reports export"
+          ],
+          "title": "reports export case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 6305
+            }
+          ]
+        },
+        {
+          "id": "3133db1e9338f71e4609-c87780da5606fc288b4e",
+          "project": "chromium",
+          "file": "e2e/reports-export.spec.ts",
+          "titlePath": [
+            "reports export"
+          ],
+          "title": "reports export case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8605
+            }
+          ]
+        },
+        {
+          "id": "3133db1e9338f71e4609-5f5fe71c7e61e34bcb2a",
+          "project": "chromium",
+          "file": "e2e/reports-export.spec.ts",
+          "titlePath": [
+            "reports export"
+          ],
+          "title": "reports export case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 6704
+            }
+          ]
+        },
+        {
+          "id": "3133db1e9338f71e4609-403b37536266b771dc60",
+          "project": "chromium",
+          "file": "e2e/reports-export.spec.ts",
+          "titlePath": [
+            "reports export"
+          ],
+          "title": "reports export case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8504
+            }
+          ]
+        },
+        {
+          "id": "3133db1e9338f71e4609-6bd64586f0073a068c6b",
+          "project": "chromium",
+          "file": "e2e/reports-export.spec.ts",
+          "titlePath": [
+            "reports export"
+          ],
+          "title": "reports export case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 6904
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-11cb91054f813b3b8219",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-3182c5541e18dd0bcda8",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2003
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-fab1daef0378c5ba88ff",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-2aafdc0ccd64e708bc1f",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1601
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-ea77571a15f8fdf1353a",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1402
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-45f7a881059609b3d46a",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-4a9c6398bddc8f0e8ce8",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "b845d7d7600d706ebe5f-713eefbaa5ca412ce3d0",
+          "project": "chromium",
+          "file": "e2e/settings-billing.spec.ts",
+          "titlePath": [
+            "settings billing"
+          ],
+          "title": "settings billing case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-823426fb5cffdc805af0",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-22da8921c63464638888",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-e833dd1b005f5db94dad",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-246286dd1354540e69b0",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2001
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-a8ca0b755b2ffbb43657",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-6fe0930c0f3625be5669",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1702
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-7045d7b92ed0e7c37230",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2002
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-106556d055d11ce3d0d7",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2002
+            }
+          ]
+        },
+        {
+          "id": "d5e26fa5418313231d99-0df0897c76e0be446a50",
+          "project": "chromium",
+          "file": "e2e/settings-security.spec.ts",
+          "titlePath": [
+            "settings security"
+          ],
+          "title": "settings security case 09",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1301
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playwrightVersion": "1.64.1",
+      "node": "24.21",
+      "shard": {
+        "current": 3,
+        "total": 4
+      },
+      "workers": 1,
+      "projects": [
+        {
+          "name": "setup",
+          "dependencies": [],
+          "retries": 0
+        },
+        {
+          "name": "chromium",
+          "dependencies": [
+            "setup"
+          ],
+          "retries": 0
+        }
+      ],
+      "run": {
+        "status": "passed",
+        "startTime": 1792232608156,
+        "duration": 109890.349
+      },
+      "tests": [
+        {
+          "id": "24f99c508366309d4e2b-ed74fb7495df8d8bb16f",
+          "project": "setup",
+          "file": "setup/environment.setup.ts",
+          "titlePath": [],
+          "title": "prepare environment",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 3005
+            }
+          ]
+        },
+        {
+          "id": "5c01cc71bc571b99a628-9fb176d1da2e165dbb8c",
+          "project": "chromium",
+          "file": "e2e/account-settings.spec.ts",
+          "titlePath": [
+            "account settings"
+          ],
+          "title": "account settings case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1303
+            }
+          ]
+        },
+        {
+          "id": "5c01cc71bc571b99a628-39942994d1a654e5356d",
+          "project": "chromium",
+          "file": "e2e/account-settings.spec.ts",
+          "titlePath": [
+            "account settings"
+          ],
+          "title": "account settings case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "5c01cc71bc571b99a628-540156a259844de337d2",
+          "project": "chromium",
+          "file": "e2e/account-settings.spec.ts",
+          "titlePath": [
+            "account settings"
+          ],
+          "title": "account settings case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1902
+            }
+          ]
+        },
+        {
+          "id": "5c01cc71bc571b99a628-95972a872c9b513f1f30",
+          "project": "chromium",
+          "file": "e2e/account-settings.spec.ts",
+          "titlePath": [
+            "account settings"
+          ],
+          "title": "account settings case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1002
+            }
+          ]
+        },
+        {
+          "id": "5c01cc71bc571b99a628-cda40f446cc57ebf2c87",
+          "project": "chromium",
+          "file": "e2e/account-settings.spec.ts",
+          "titlePath": [
+            "account settings"
+          ],
+          "title": "account settings case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 200
+            }
+          ]
+        },
+        {
+          "id": "5c01cc71bc571b99a628-aff95e5263173f810364",
+          "project": "chromium",
+          "file": "e2e/account-settings.spec.ts",
+          "titlePath": [
+            "account settings"
+          ],
+          "title": "account settings case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "5c01cc71bc571b99a628-47ba38511fac2133fd0b",
+          "project": "chromium",
+          "file": "e2e/account-settings.spec.ts",
+          "titlePath": [
+            "account settings"
+          ],
+          "title": "account settings case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1702
+            }
+          ]
+        },
+        {
+          "id": "d4c963f88f64f42a50eb-410041e999de3b26f096",
+          "project": "chromium",
+          "file": "e2e/catalog-search.spec.ts",
+          "titlePath": [
+            "catalog search"
+          ],
+          "title": "catalog search case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1500
+            }
+          ]
+        },
+        {
+          "id": "d4c963f88f64f42a50eb-7fbe4810f7b654bc2fb5",
+          "project": "chromium",
+          "file": "e2e/catalog-search.spec.ts",
+          "titlePath": [
+            "catalog search"
+          ],
+          "title": "catalog search case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "d4c963f88f64f42a50eb-8768ab471ff8b17139c5",
+          "project": "chromium",
+          "file": "e2e/catalog-search.spec.ts",
+          "titlePath": [
+            "catalog search"
+          ],
+          "title": "catalog search case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1002
+            }
+          ]
+        },
+        {
+          "id": "d4c963f88f64f42a50eb-6519823822cf4dcce7e4",
+          "project": "chromium",
+          "file": "e2e/catalog-search.spec.ts",
+          "titlePath": [
+            "catalog search"
+          ],
+          "title": "catalog search case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "d4c963f88f64f42a50eb-71361e47ac3d91cc2421",
+          "project": "chromium",
+          "file": "e2e/catalog-search.spec.ts",
+          "titlePath": [
+            "catalog search"
+          ],
+          "title": "catalog search case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "d4c963f88f64f42a50eb-50dd129924045564fb45",
+          "project": "chromium",
+          "file": "e2e/catalog-search.spec.ts",
+          "titlePath": [
+            "catalog search"
+          ],
+          "title": "catalog search case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 700
+            }
+          ]
+        },
+        {
+          "id": "af5c78008276aae76420-8cfdc19ac49e00454b39",
+          "project": "chromium",
+          "file": "e2e/checkout-refunds.spec.ts",
+          "titlePath": [
+            "checkout refunds"
+          ],
+          "title": "checkout refunds case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8705
+            }
+          ]
+        },
+        {
+          "id": "af5c78008276aae76420-46feeca8f2bcff578a85",
+          "project": "chromium",
+          "file": "e2e/checkout-refunds.spec.ts",
+          "titlePath": [
+            "checkout refunds"
+          ],
+          "title": "checkout refunds case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 9206
+            }
+          ]
+        },
+        {
+          "id": "af5c78008276aae76420-80c3601d55cd263850c8",
+          "project": "chromium",
+          "file": "e2e/checkout-refunds.spec.ts",
+          "titlePath": [
+            "checkout refunds"
+          ],
+          "title": "checkout refunds case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 7707
+            }
+          ]
+        },
+        {
+          "id": "af5c78008276aae76420-a956327fb4b68d2c2864",
+          "project": "chromium",
+          "file": "e2e/checkout-refunds.spec.ts",
+          "titlePath": [
+            "checkout refunds"
+          ],
+          "title": "checkout refunds case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 7706
+            }
+          ]
+        },
+        {
+          "id": "af5c78008276aae76420-f199f668e608c379e593",
+          "project": "chromium",
+          "file": "e2e/checkout-refunds.spec.ts",
+          "titlePath": [
+            "checkout refunds"
+          ],
+          "title": "checkout refunds case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8706
+            }
+          ]
+        },
+        {
+          "id": "aad19b058a35ef0db03a-2fe0e24c50603db7d19a",
+          "project": "chromium",
+          "file": "e2e/invoices-list.spec.ts",
+          "titlePath": [
+            "invoices list"
+          ],
+          "title": "invoices list case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1601
+            }
+          ]
+        },
+        {
+          "id": "aad19b058a35ef0db03a-f8e998835cb1f4545601",
+          "project": "chromium",
+          "file": "e2e/invoices-list.spec.ts",
+          "titlePath": [
+            "invoices list"
+          ],
+          "title": "invoices list case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1602
+            }
+          ]
+        },
+        {
+          "id": "aad19b058a35ef0db03a-39b87045555d8b760596",
+          "project": "chromium",
+          "file": "e2e/invoices-list.spec.ts",
+          "titlePath": [
+            "invoices list"
+          ],
+          "title": "invoices list case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "aad19b058a35ef0db03a-1f19044455163189dd9b",
+          "project": "chromium",
+          "file": "e2e/invoices-list.spec.ts",
+          "titlePath": [
+            "invoices list"
+          ],
+          "title": "invoices list case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1602
+            }
+          ]
+        },
+        {
+          "id": "aad19b058a35ef0db03a-f2b4d535759aec639858",
+          "project": "chromium",
+          "file": "e2e/invoices-list.spec.ts",
+          "titlePath": [
+            "invoices list"
+          ],
+          "title": "invoices list case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "aad19b058a35ef0db03a-dd3a845cb4def8056aad",
+          "project": "chromium",
+          "file": "e2e/invoices-list.spec.ts",
+          "titlePath": [
+            "invoices list"
+          ],
+          "title": "invoices list case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "aad19b058a35ef0db03a-61ac90cbab32627c9d83",
+          "project": "chromium",
+          "file": "e2e/invoices-list.spec.ts",
+          "titlePath": [
+            "invoices list"
+          ],
+          "title": "invoices list case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 900
+            }
+          ]
+        },
+        {
+          "id": "3ebf8db13665ed9461c3-d588dd31918d63c03143",
+          "project": "chromium",
+          "file": "e2e/orders-history.spec.ts",
+          "titlePath": [
+            "orders history"
+          ],
+          "title": "orders history case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1502
+            }
+          ]
+        },
+        {
+          "id": "3ebf8db13665ed9461c3-b4ff6754b01bf216d678",
+          "project": "chromium",
+          "file": "e2e/orders-history.spec.ts",
+          "titlePath": [
+            "orders history"
+          ],
+          "title": "orders history case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 301
+            }
+          ]
+        },
+        {
+          "id": "3ebf8db13665ed9461c3-220b1f1a747c2970beb6",
+          "project": "chromium",
+          "file": "e2e/orders-history.spec.ts",
+          "titlePath": [
+            "orders history"
+          ],
+          "title": "orders history case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "3ebf8db13665ed9461c3-4c6094d28e51f0a0aaa5",
+          "project": "chromium",
+          "file": "e2e/orders-history.spec.ts",
+          "titlePath": [
+            "orders history"
+          ],
+          "title": "orders history case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1701
+            }
+          ]
+        },
+        {
+          "id": "3ebf8db13665ed9461c3-1147921a87a2abb69370",
+          "project": "chromium",
+          "file": "e2e/orders-history.spec.ts",
+          "titlePath": [
+            "orders history"
+          ],
+          "title": "orders history case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 200
+            }
+          ]
+        },
+        {
+          "id": "3ebf8db13665ed9461c3-3e25ffcb474aacc1c09e",
+          "project": "chromium",
+          "file": "e2e/orders-history.spec.ts",
+          "titlePath": [
+            "orders history"
+          ],
+          "title": "orders history case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-5e9b4c12ca3c9c529660",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1702
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-bad53fe73f9967c26a6d",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1101
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-2faafa137e87190cd843",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-0d28685fff328698403e",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1502
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-19c5ddcf86bf2d58ca2c",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1701
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-ee4e31c7549ccd03d6b9",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1502
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-b3d747a6b205b5101c06",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-990830b9c89b47904a97",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 300
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-615b0722e15d1f5ec575",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 09",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 400
+            }
+          ]
+        },
+        {
+          "id": "8bae50fd7f3d994c0d00-efbe92d2232dc3ced0be",
+          "project": "chromium",
+          "file": "e2e/search-suggest.spec.ts",
+          "titlePath": [
+            "search suggest"
+          ],
+          "title": "search suggest case 10",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1301
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-08f810154d8931fe4708",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2302
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-cfe111be977a810309cf",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1801
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-40958c1f5fb3f9b27ef1",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2803
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-5c1bc70f3ec4ad9d04f7",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2903
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-5e8400e90e56117a2dfb",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1701
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-e8e3ca5fc39327883ffa",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1802
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-79a5a241643ea2a61cb3",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2202
+            }
+          ]
+        },
+        {
+          "id": "c5474ffe32ec1a19073a-c08905be33c104d489b5",
+          "project": "chromium",
+          "file": "e2e/serial-ledger.spec.ts",
+          "titlePath": [
+            "serial ledger"
+          ],
+          "title": "serial ledger case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2302
+            }
+          ]
+        },
+        {
+          "id": "3c04488fc55b5cc1db0d-a7b54089f8e3bd280905",
+          "project": "chromium",
+          "file": "e2e/wishlist-items.spec.ts",
+          "titlePath": [
+            "wishlist items"
+          ],
+          "title": "wishlist items case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1700
+            }
+          ]
+        },
+        {
+          "id": "3c04488fc55b5cc1db0d-2c2e7fb670aad6c7b0e6",
+          "project": "chromium",
+          "file": "e2e/wishlist-items.spec.ts",
+          "titlePath": [
+            "wishlist items"
+          ],
+          "title": "wishlist items case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "3c04488fc55b5cc1db0d-2e01cd085e15f7dbe3d6",
+          "project": "chromium",
+          "file": "e2e/wishlist-items.spec.ts",
+          "titlePath": [
+            "wishlist items"
+          ],
+          "title": "wishlist items case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1300
+            }
+          ]
+        },
+        {
+          "id": "3c04488fc55b5cc1db0d-324316a195294049230d",
+          "project": "chromium",
+          "file": "e2e/wishlist-items.spec.ts",
+          "titlePath": [
+            "wishlist items"
+          ],
+          "title": "wishlist items case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1602
+            }
+          ]
+        },
+        {
+          "id": "3c04488fc55b5cc1db0d-444bd86a2aa6bf3d5ba4",
+          "project": "chromium",
+          "file": "e2e/wishlist-items.spec.ts",
+          "titlePath": [
+            "wishlist items"
+          ],
+          "title": "wishlist items case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 2002
+            }
+          ]
+        },
+        {
+          "id": "3c04488fc55b5cc1db0d-32bfef49e36515ac2930",
+          "project": "chromium",
+          "file": "e2e/wishlist-items.spec.ts",
+          "titlePath": [
+            "wishlist items"
+          ],
+          "title": "wishlist items case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1301
+            }
+          ]
+        },
+        {
+          "id": "3c04488fc55b5cc1db0d-ff5d2bfe125f9382e858",
+          "project": "chromium",
+          "file": "e2e/wishlist-items.spec.ts",
+          "titlePath": [
+            "wishlist items"
+          ],
+          "title": "wishlist items case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1099
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "playwrightVersion": "1.64.1",
+      "node": "24.21",
+      "shard": {
+        "current": 4,
+        "total": 4
+      },
+      "workers": 1,
+      "projects": [
+        {
+          "name": "setup",
+          "dependencies": [],
+          "retries": 0
+        },
+        {
+          "name": "chromium",
+          "dependencies": [
+            "setup"
+          ],
+          "retries": 0
+        }
+      ],
+      "run": {
+        "status": "passed",
+        "startTime": 1792232604882,
+        "duration": 110129.943
+      },
+      "tests": [
+        {
+          "id": "24f99c508366309d4e2b-ed74fb7495df8d8bb16f",
+          "project": "setup",
+          "file": "setup/environment.setup.ts",
+          "titlePath": [],
+          "title": "prepare environment",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 3006
+            }
+          ]
+        },
+        {
+          "id": "2bb2ee00e1c984e850a2-069c55db99075d3f032a",
+          "project": "chromium",
+          "file": "e2e/account-profile.spec.ts",
+          "titlePath": [
+            "account profile"
+          ],
+          "title": "account profile case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1304
+            }
+          ]
+        },
+        {
+          "id": "2bb2ee00e1c984e850a2-8074db55abd3a2385d49",
+          "project": "chromium",
+          "file": "e2e/account-profile.spec.ts",
+          "titlePath": [
+            "account profile"
+          ],
+          "title": "account profile case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 201
+            }
+          ]
+        },
+        {
+          "id": "2bb2ee00e1c984e850a2-f14f681f1c9eb15fbe95",
+          "project": "chromium",
+          "file": "e2e/account-profile.spec.ts",
+          "titlePath": [
+            "account profile"
+          ],
+          "title": "account profile case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1102
+            }
+          ]
+        },
+        {
+          "id": "2bb2ee00e1c984e850a2-19032971165bedbad981",
+          "project": "chromium",
+          "file": "e2e/account-profile.spec.ts",
+          "titlePath": [
+            "account profile"
+          ],
+          "title": "account profile case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "2bb2ee00e1c984e850a2-2c272df54367dd271889",
+          "project": "chromium",
+          "file": "e2e/account-profile.spec.ts",
+          "titlePath": [
+            "account profile"
+          ],
+          "title": "account profile case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 201
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-0a5635d0b02b10dc466b",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-2ac0c9db5e5ce07f5588",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1202
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-fdc5bd043e1ef8e8a3ec",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1701
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-f0b829083bc5d18e5997",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 301
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-09a0ce2b6cfe5a925844",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 801
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-1546b1da76cc87a7abcb",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1602
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-fa5a16c1e18ae4eba608",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-5aa94e4ace3e2a5bd394",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-cae6d0f831f5eb3684e1",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 09",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 300
+            }
+          ]
+        },
+        {
+          "id": "1e4164cbcd7d7052b193-3321e6813d587f4b832b",
+          "project": "chromium",
+          "file": "e2e/admin-audit.spec.ts",
+          "titlePath": [
+            "admin audit"
+          ],
+          "title": "admin audit case 10",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 301
+            }
+          ]
+        },
+        {
+          "id": "709e1e15a62ae49f7655-c6aa2c2b946df89f404e",
+          "project": "chromium",
+          "file": "e2e/cart-coupons.spec.ts",
+          "titlePath": [
+            "cart coupons"
+          ],
+          "title": "cart coupons case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1101
+            }
+          ]
+        },
+        {
+          "id": "709e1e15a62ae49f7655-0e5ac66cc4941f23112f",
+          "project": "chromium",
+          "file": "e2e/cart-coupons.spec.ts",
+          "titlePath": [
+            "cart coupons"
+          ],
+          "title": "cart coupons case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1901
+            }
+          ]
+        },
+        {
+          "id": "709e1e15a62ae49f7655-3eeb9ba6c7a9fba6a781",
+          "project": "chromium",
+          "file": "e2e/cart-coupons.spec.ts",
+          "titlePath": [
+            "cart coupons"
+          ],
+          "title": "cart coupons case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1202
+            }
+          ]
+        },
+        {
+          "id": "709e1e15a62ae49f7655-010889aec53201e5e59f",
+          "project": "chromium",
+          "file": "e2e/cart-coupons.spec.ts",
+          "titlePath": [
+            "cart coupons"
+          ],
+          "title": "cart coupons case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1202
+            }
+          ]
+        },
+        {
+          "id": "709e1e15a62ae49f7655-3e1aa84b4c11d644ed34",
+          "project": "chromium",
+          "file": "e2e/cart-coupons.spec.ts",
+          "titlePath": [
+            "cart coupons"
+          ],
+          "title": "cart coupons case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1602
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-20ca3085cdd51f76561a",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-000a2bcbae50b1a4e159",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-7cd877a76f89c53d14e0",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 301
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-f4208e33e83ec6ddcc11",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1901
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-234f8521b68d39c35585",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1201
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-784d4c9dcf83a4456283",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-8eb94422f107370b940f",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 601
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-c0ab512a0b856486be86",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1702
+            }
+          ]
+        },
+        {
+          "id": "01383c159d2311734e2e-bbf32bbdf426893e5ed9",
+          "project": "chromium",
+          "file": "e2e/catalog-browse.spec.ts",
+          "titlePath": [
+            "catalog browse"
+          ],
+          "title": "catalog browse case 09",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1001
+            }
+          ]
+        },
+        {
+          "id": "3f65a3cf0247c92bb6d9-96d5064c62f35eebfcbd",
+          "project": "chromium",
+          "file": "e2e/catalog-filters.spec.ts",
+          "titlePath": [
+            "catalog filters"
+          ],
+          "title": "catalog filters case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1402
+            }
+          ]
+        },
+        {
+          "id": "3f65a3cf0247c92bb6d9-8e4fb1d39503e82ec5ca",
+          "project": "chromium",
+          "file": "e2e/catalog-filters.spec.ts",
+          "titlePath": [
+            "catalog filters"
+          ],
+          "title": "catalog filters case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "3f65a3cf0247c92bb6d9-c0972e544bf80097596b",
+          "project": "chromium",
+          "file": "e2e/catalog-filters.spec.ts",
+          "titlePath": [
+            "catalog filters"
+          ],
+          "title": "catalog filters case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "3f65a3cf0247c92bb6d9-1edfb68657db8cac543e",
+          "project": "chromium",
+          "file": "e2e/catalog-filters.spec.ts",
+          "titlePath": [
+            "catalog filters"
+          ],
+          "title": "catalog filters case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 401
+            }
+          ]
+        },
+        {
+          "id": "3f65a3cf0247c92bb6d9-9297fff8ee05f9c94021",
+          "project": "chromium",
+          "file": "e2e/catalog-filters.spec.ts",
+          "titlePath": [
+            "catalog filters"
+          ],
+          "title": "catalog filters case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "ae5ad2f74b0648fc86f6-fc02a35ee7bbd87cb294",
+          "project": "chromium",
+          "file": "e2e/checkout-shipping.spec.ts",
+          "titlePath": [
+            "checkout shipping"
+          ],
+          "title": "checkout shipping case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 9504
+            }
+          ]
+        },
+        {
+          "id": "ae5ad2f74b0648fc86f6-03e7c96f42e14f040d6a",
+          "project": "chromium",
+          "file": "e2e/checkout-shipping.spec.ts",
+          "titlePath": [
+            "checkout shipping"
+          ],
+          "title": "checkout shipping case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 5801
+            }
+          ]
+        },
+        {
+          "id": "ae5ad2f74b0648fc86f6-778a391e947d25096da1",
+          "project": "chromium",
+          "file": "e2e/checkout-shipping.spec.ts",
+          "titlePath": [
+            "checkout shipping"
+          ],
+          "title": "checkout shipping case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 6006
+            }
+          ]
+        },
+        {
+          "id": "ae5ad2f74b0648fc86f6-662e22c669475ae3c3e1",
+          "project": "chromium",
+          "file": "e2e/checkout-shipping.spec.ts",
+          "titlePath": [
+            "checkout shipping"
+          ],
+          "title": "checkout shipping case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8708
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-9b63b96b80d2fd8f1e3b",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1601
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-659de093e247e5f58b07",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-e677091e5f89c27fbd74",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1102
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-43fdc52c750652538e29",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 901
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-41d3c3ca6e6b24f93ae4",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1902
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-f31945c7c90f4fbbd67b",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 301
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-631c3045b2256cf93c22",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1201
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-bd610fa0e32f37e21dfd",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 08",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1701
+            }
+          ]
+        },
+        {
+          "id": "624602b8c524b47cf4dd-606ae6604b90d885aead",
+          "project": "chromium",
+          "file": "e2e/dashboard-cards.spec.ts",
+          "titlePath": [
+            "dashboard cards"
+          ],
+          "title": "dashboard cards case 09",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1402
+            }
+          ]
+        },
+        {
+          "id": "d18f708f8e05088c9184-c98cc569ff8f9c045a29",
+          "project": "chromium",
+          "file": "e2e/orders-tracking.spec.ts",
+          "titlePath": [
+            "orders tracking"
+          ],
+          "title": "orders tracking case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "d18f708f8e05088c9184-320da761fe42cd70a762",
+          "project": "chromium",
+          "file": "e2e/orders-tracking.spec.ts",
+          "titlePath": [
+            "orders tracking"
+          ],
+          "title": "orders tracking case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1302
+            }
+          ]
+        },
+        {
+          "id": "d18f708f8e05088c9184-c0f6970402282ea52ec6",
+          "project": "chromium",
+          "file": "e2e/orders-tracking.spec.ts",
+          "titlePath": [
+            "orders tracking"
+          ],
+          "title": "orders tracking case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1402
+            }
+          ]
+        },
+        {
+          "id": "d18f708f8e05088c9184-3af6ead7e1ea847ea73b",
+          "project": "chromium",
+          "file": "e2e/orders-tracking.spec.ts",
+          "titlePath": [
+            "orders tracking"
+          ],
+          "title": "orders tracking case 04",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 1301
+            }
+          ]
+        },
+        {
+          "id": "d18f708f8e05088c9184-bf79280656195faba1b0",
+          "project": "chromium",
+          "file": "e2e/orders-tracking.spec.ts",
+          "titlePath": [
+            "orders tracking"
+          ],
+          "title": "orders tracking case 05",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 701
+            }
+          ]
+        },
+        {
+          "id": "d18f708f8e05088c9184-ac8b97d5bbe448a7a59d",
+          "project": "chromium",
+          "file": "e2e/orders-tracking.spec.ts",
+          "titlePath": [
+            "orders tracking"
+          ],
+          "title": "orders tracking case 06",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "d18f708f8e05088c9184-c6a1990470536ae762bb",
+          "project": "chromium",
+          "file": "e2e/orders-tracking.spec.ts",
+          "titlePath": [
+            "orders tracking"
+          ],
+          "title": "orders tracking case 07",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 501
+            }
+          ]
+        },
+        {
+          "id": "e09b3f680b51f1eca39c-0ecd16c96082ff312998",
+          "project": "chromium",
+          "file": "e2e/reports-scheduled.spec.ts",
+          "titlePath": [
+            "reports scheduled"
+          ],
+          "title": "reports scheduled case 01",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 5806
+            }
+          ]
+        },
+        {
+          "id": "e09b3f680b51f1eca39c-970bc224a8a25453381a",
+          "project": "chromium",
+          "file": "e2e/reports-scheduled.spec.ts",
+          "titlePath": [
+            "reports scheduled"
+          ],
+          "title": "reports scheduled case 02",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 8907
+            }
+          ]
+        },
+        {
+          "id": "e09b3f680b51f1eca39c-6442cf8022ea7725dc45",
+          "project": "chromium",
+          "file": "e2e/reports-scheduled.spec.ts",
+          "titlePath": [
+            "reports scheduled"
+          ],
+          "title": "reports scheduled case 03",
+          "repeatEachIndex": 0,
+          "attempts": [
+            {
+              "retry": 0,
+              "status": "passed",
+              "duration": 9301
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

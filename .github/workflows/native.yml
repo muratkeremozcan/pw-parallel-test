@@ -2,7 +2,7 @@
 # Results are collected with scripts/measure/collect.ts; see results/README.md.
 name: Native shards
 # The token lets scripts/measure/campaign.ts find the exact run it dispatched.
-run-name: Native shards ${{ inputs.shards }} ${{ inputs.token }}
+run-name: Native shards ${{ inputs.shards }}${{ inputs.workers && format(' workers={0}', inputs.workers) || '' }} ${{ inputs.token }}
 
 on:
   workflow_dispatch:
@@ -12,6 +12,11 @@ on:
         type: number
         required: true
         default: 4
+      workers:
+        description: Workers per shard, passed as --workers; empty keeps the config's 1
+        type: string
+        required: false
+        default: ''
       token:
         description: Dispatch token set by scripts/measure/campaign.ts
         type: string
@@ -36,14 +41,19 @@ jobs:
       shards: ${{ steps.plan.outputs.shards }}
       total: ${{ steps.plan.outputs.total }}
     steps:
-      - name: Validate shard count and build the matrix
+      - name: Validate shard count and workers, and build the matrix
         id: plan
         env:
           # Security: inputs passed through env: to prevent script injection
           SHARDS: ${{ inputs.shards }}
+          WORKERS: ${{ inputs.workers }}
         run: |
           if ! [[ "$SHARDS" =~ ^[1-9][0-9]?$ ]] || (( 10#$SHARDS > 16 )); then
             echo "::error::shards must be an integer from 1 to 16, got '$SHARDS'"
+            exit 1
+          fi
+          if [ -n "$WORKERS" ] && ! [[ "$WORKERS" =~ ^[1-9]$ ]]; then
+            echo "::error::workers must be empty or an integer from 1 to 9, got '$WORKERS'"
             exit 1
           fi
           echo "total=$SHARDS" >> "$GITHUB_OUTPUT"
@@ -66,7 +76,9 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Run tests
-        run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }}
+        env:
+          WORKERS: ${{ inputs.workers && format('--workers={0}', inputs.workers) || '' }}
+        run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }} $WORKERS
       - name: Upload blob report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7

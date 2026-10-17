@@ -4,7 +4,8 @@
  *
  *   node scripts/measure/campaign.ts --arms native:4,native:8,native:4,native:8 [--ref main]
  *
- * An arm is `<mode>:<shards>`, with a mode from ARMS in collect.ts: native, smart or rollback.
+ * An arm is `<mode>:<shards>[:<workers>]`, with a mode from ARMS in collect.ts: native, smart or
+ * rollback, and an optional workers input.
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -69,7 +70,12 @@ const waitForIdle = async () => {
 };
 
 /** Dispatches a run with a unique token in its run name and returns that run's id. */
-const dispatch = async (arm: Arm, shards: number, ref: string): Promise<number> => {
+const dispatch = async (
+  arm: Arm,
+  shards: number,
+  workers: number | null,
+  ref: string,
+): Promise<number> => {
   const workflow = basename(arm.workflow);
   const token = randomUUID();
   gh([
@@ -84,6 +90,7 @@ const dispatch = async (arm: Arm, shards: number, ref: string): Promise<number> 
     `shards=${shards}`,
     '-f',
     `token=${token}`,
+    ...(workers ? ['-f', `workers=${workers}`] : []),
     ...Object.entries(arm.inputs).flatMap(([name, value]) => ['-f', `${name}=${value}`]),
   ]);
   const deadline = Date.now() + FIND_TIMEOUT_MS;
@@ -117,24 +124,39 @@ const main = async () => {
     },
   });
   const arms = (values.arms ?? '').split(',').map((arm) => {
-    const [mode, count] = arm.split(':');
+    const [mode, count, perShard] = arm.split(':');
     const shards = Number(count);
-    if (!ARMS[mode] || !Number.isInteger(shards) || shards < 1) {
-      throw new Error(`bad arm ${JSON.stringify(arm)}; expected <mode>:<shards>`);
+    const workers = perShard === undefined ? null : Number(perShard);
+    // The bounds of the workflows' own validation, so a bad arm fails before any dispatch.
+    if (
+      !ARMS[mode] ||
+      !Number.isInteger(shards) ||
+      shards < 1 ||
+      shards > 16 ||
+      (workers !== null && (!Number.isInteger(workers) || workers < 1 || workers > 9))
+    ) {
+      throw new Error(`bad arm ${JSON.stringify(arm)}; expected <mode>:<shards>[:<workers>]`);
     }
-    return { mode, shards };
+    return { mode, shards, workers };
   });
   if (arms.length === 0 || !values.arms) throw new Error('--arms is required');
 
   for (const [index, arm] of arms.entries()) {
     await waitForIdle();
-    const runId = await dispatch(ARMS[arm.mode], arm.shards, values.ref!);
-    console.log(`[${index + 1}/${arms.length}] ${arm.mode}:${arm.shards} run ${runId} dispatched`);
+    const runId = await dispatch(ARMS[arm.mode], arm.shards, arm.workers, values.ref!);
+    const label = `${arm.mode}:${arm.shards}${arm.workers ? `:${arm.workers}` : ''}`;
+    console.log(`[${index + 1}/${arms.length}] ${label} run ${runId} dispatched`);
     const conclusion = await waitFor(runId);
     if (conclusion !== 'success') throw new Error(`run ${runId} concluded ${conclusion}`);
     const record = collect(runId, arm.mode);
-    if (record.run.headBranch !== values.ref || record.shardCount !== arm.shards) {
-      throw new Error(`run ${runId} ran ${record.run.headBranch} with ${record.shardCount} shards`);
+    if (
+      record.run.headBranch !== values.ref ||
+      record.shardCount !== arm.shards ||
+      (record.workersInput ?? null) !== arm.workers
+    ) {
+      throw new Error(
+        `run ${runId} ran ${record.run.headBranch} with ${record.shardCount} shards and workers ${record.workersInput}`,
+      );
     }
     const file = writeRecord(record, values.out!);
     console.log(`[${index + 1}/${arms.length}] wrote ${file}`);
