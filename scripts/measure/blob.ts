@@ -14,6 +14,8 @@ export type TestRecord = {
   titlePath: string[];
   title: string;
   repeatEachIndex: number;
+  /** Playwright's tags, which mark the serial group; absent in records of schema 2. */
+  tags?: string[];
   attempts: Attempt[];
 };
 
@@ -22,6 +24,8 @@ export type ShardReport = {
   node: string | null;
   shard: { current: number; total: number } | null;
   workers: number;
+  /** `fullyParallel` from the config metadata; absent in records of schema 2. */
+  fullyParallel?: boolean;
   projects: { name: string; dependencies: string[]; retries: number }[];
   run: { status: string; startTime: number; duration: number };
   tests: TestRecord[];
@@ -32,6 +36,7 @@ type Entry = {
   title: string;
   location: { file: string };
   repeatEachIndex?: number;
+  tags?: string[];
   entries?: Entry[];
 };
 
@@ -58,6 +63,7 @@ const collectTests = (
         titlePath,
         title: entry.title,
         repeatEachIndex: entry.repeatEachIndex ?? 0,
+        tags: entry.tags ?? [],
         attempts: [],
       });
     } else {
@@ -116,12 +122,17 @@ export const reduceBlob = (text: string): ShardReport => {
     if (!ended.has(id)) throw new Error(`attempt ${id} began but never ended`);
   }
 
+  const fullyParallel = configure.params.config.metadata?.fullyParallel;
+  if (typeof fullyParallel !== 'boolean') {
+    throw new Error('blob report config metadata lacks a boolean fullyParallel');
+  }
   const node = /\bnode\/(\S+)/.exec(metadata.params.userAgent);
   return {
     playwrightVersion: configure.params.config.version,
     node: node ? node[1] : null,
     shard: metadata.params.shard ?? null,
     workers: configure.params.config.workers,
+    fullyParallel,
     projects,
     run: {
       status: end.params.result.status,

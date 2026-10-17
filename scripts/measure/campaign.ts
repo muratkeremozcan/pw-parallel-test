@@ -2,10 +2,10 @@
  * Dispatches measurement runs one at a time, waits for each to finish, and collects it into
  * results/raw/ before dispatching the next, so no two measured runs compete for runners. Usage:
  *
- *   node scripts/measure/campaign.ts --arms native:4,native:8,native:4,native:8 [--ref main]
+ *   node scripts/measure/campaign.ts --arms native:4:2,smart:4:2,native:4:2:fp [--ref main]
  *
- * An arm is `<mode>:<shards>[:<workers>]`, with a mode from ARMS in collect.ts: native, smart or
- * rollback, and an optional workers input.
+ * An arm is `<mode>:<shards>[:<workers>[:fp]]`, with a mode from ARMS in collect.ts: native, smart
+ * or rollback, an optional workers input, and `fp` to dispatch with fully-parallel true.
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -74,6 +74,7 @@ const dispatch = async (
   arm: Arm,
   shards: number,
   workers: number | null,
+  fullyParallel: boolean,
   ref: string,
 ): Promise<number> => {
   const workflow = basename(arm.workflow);
@@ -91,6 +92,7 @@ const dispatch = async (
     '-f',
     `token=${token}`,
     ...(workers ? ['-f', `workers=${workers}`] : []),
+    ...(fullyParallel ? ['-f', 'fully-parallel=true'] : []),
     ...Object.entries(arm.inputs).flatMap(([name, value]) => ['-f', `${name}=${value}`]),
   ]);
   const deadline = Date.now() + FIND_TIMEOUT_MS;
@@ -124,27 +126,38 @@ const main = async () => {
     },
   });
   const arms = (values.arms ?? '').split(',').map((arm) => {
-    const [mode, count, perShard] = arm.split(':');
+    const [mode, count, perShard, parallel, ...rest] = arm.split(':');
     const shards = Number(count);
     const workers = perShard === undefined ? null : Number(perShard);
+    const fullyParallel = parallel === 'fp';
     // The bounds of the workflows' own validation, so a bad arm fails before any dispatch.
     if (
       !ARMS[mode] ||
       !Number.isInteger(shards) ||
       shards < 1 ||
       shards > 16 ||
-      (workers !== null && (!Number.isInteger(workers) || workers < 1 || workers > 9))
+      (workers !== null && (!Number.isInteger(workers) || workers < 1 || workers > 9)) ||
+      (parallel !== undefined && !fullyParallel) ||
+      rest.length > 0
     ) {
-      throw new Error(`bad arm ${JSON.stringify(arm)}; expected <mode>:<shards>[:<workers>]`);
+      throw new Error(`bad arm ${JSON.stringify(arm)}; expected <mode>:<shards>[:<workers>[:fp]]`);
     }
-    return { mode, shards, workers };
+    return { mode, shards, workers, fullyParallel };
   });
   if (arms.length === 0 || !values.arms) throw new Error('--arms is required');
 
   for (const [index, arm] of arms.entries()) {
     await waitForIdle();
-    const runId = await dispatch(ARMS[arm.mode], arm.shards, arm.workers, values.ref!);
-    const label = `${arm.mode}:${arm.shards}${arm.workers ? `:${arm.workers}` : ''}`;
+    const runId = await dispatch(
+      ARMS[arm.mode],
+      arm.shards,
+      arm.workers,
+      arm.fullyParallel,
+      values.ref!,
+    );
+    const label =
+      `${arm.mode}:${arm.shards}${arm.workers ? `:${arm.workers}` : ''}` +
+      (arm.fullyParallel ? ':fp' : '');
     console.log(`[${index + 1}/${arms.length}] ${label} run ${runId} dispatched`);
     const conclusion = await waitFor(runId);
     if (conclusion !== 'success') throw new Error(`run ${runId} concluded ${conclusion}`);
@@ -152,10 +165,11 @@ const main = async () => {
     if (
       record.run.headBranch !== values.ref ||
       record.shardCount !== arm.shards ||
-      (record.workersInput ?? null) !== arm.workers
+      (record.workersInput ?? null) !== arm.workers ||
+      record.fullyParallelInput !== arm.fullyParallel
     ) {
       throw new Error(
-        `run ${runId} ran ${record.run.headBranch} with ${record.shardCount} shards and workers ${record.workersInput}`,
+        `run ${runId} ran ${record.run.headBranch} with ${record.shardCount} shards, workers ${record.workersInput} and fully-parallel ${record.fullyParallelInput}`,
       );
     }
     const file = writeRecord(record, values.out!);

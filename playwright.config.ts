@@ -1,18 +1,24 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const isCI = Boolean(process.env.CI);
+// The measurement workflows set PW_FULLY_PARALLEL from their fully-parallel input.
+const fullyParallel = process.env.PW_FULLY_PARALLEL === 'true';
 
 /**
  * Synthetic measurement suite. Every test body waits a fixed, committed duration and touches no
  * browser, so shard balance is the only variable between runs.
  *
- * - fullyParallel is left at Playwright's default (false): a spec file is the unit native sharding
- *   distributes, and the serial describe in serial-ledger.spec.ts stays whole either way.
+ * - fullyParallel is Playwright's default (false) unless PW_FULLY_PARALLEL is true. Off, a spec file
+ *   is the unit native sharding distributes; on, a test is, and the serial describe in
+ *   serial-ledger.spec.ts stays whole either way. The value is kept in the config metadata, which
+ *   the blob report carries, so a measured run records which way it ran.
  * - retries are 0 so a run's duration is never inflated by a rerun.
- * - workers are 1 per shard so a shard's run time is the sum of its tests.
+ * - workers default to 1; the measurement workflows pass --workers per shard.
  */
 export default defineConfig({
   testDir: './tests',
+  fullyParallel,
+  metadata: { fullyParallel },
   forbidOnly: isCI,
   retries: 0,
   // Burn-in (PW_BURN_IN, set by playwright-utils) repeats tests and is no measurement, so it fans out.

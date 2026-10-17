@@ -2,7 +2,7 @@
 # Results are collected with scripts/measure/collect.ts; see results/README.md.
 name: Native shards
 # The token lets scripts/measure/campaign.ts find the exact run it dispatched.
-run-name: Native shards ${{ inputs.shards }}${{ inputs.workers && format(' workers={0}', inputs.workers) || '' }} ${{ inputs.token }}
+run-name: Native shards ${{ inputs.shards }}${{ inputs.workers && format(' workers={0}', inputs.workers) || '' }}${{ inputs.fully-parallel && ' fully-parallel=true' || '' }} ${{ inputs.token }}
 
 on:
   workflow_dispatch:
@@ -17,6 +17,10 @@ on:
         type: string
         required: false
         default: ''
+      fully-parallel:
+        description: true runs the suite with fullyParallel on, through PW_FULLY_PARALLEL
+        type: boolean
+        default: false
       token:
         description: Dispatch token set by scripts/measure/campaign.ts
         type: string
@@ -78,6 +82,7 @@ jobs:
       - name: Run tests
         env:
           WORKERS: ${{ inputs.workers && format('--workers={0}', inputs.workers) || '' }}
+          PW_FULLY_PARALLEL: ${{ inputs.fully-parallel }}
         run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }} $WORKERS
       - name: Upload blob report
         if: ${{ !cancelled() }}

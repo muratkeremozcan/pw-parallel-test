@@ -5,7 +5,7 @@
 # results/README.md.
 name: Smart shards
 # The token lets scripts/measure/campaign.ts find the exact run it dispatched.
-run-name: Smart shards ${{ inputs.shards }} enabled=${{ inputs.enabled }}${{ inputs.workers && format(' workers={0}', inputs.workers) || '' }} ${{ inputs.token }}
+run-name: Smart shards ${{ inputs.shards }} enabled=${{ inputs.enabled }}${{ inputs.workers && format(' workers={0}', inputs.workers) || '' }}${{ inputs.fully-parallel && ' fully-parallel=true' || '' }} ${{ inputs.token }}
 
 on:
   workflow_dispatch:
@@ -24,6 +24,10 @@ on:
         type: string
         required: false
         default: ''
+      fully-parallel:
+        description: true runs the suite with fullyParallel on, through PW_FULLY_PARALLEL
+        type: boolean
+        default: false
       token:
         description: Dispatch token set by scripts/measure/campaign.ts
         type: string
@@ -88,10 +92,14 @@ jobs:
       # No browser install: no test opens a browser, and native.yml installs none either.
       - run: npm ci
       - id: psp
-        uses: muratkeremozcan/playwright-smart-parallelization@65d649d62779c544dd9d4f358f129a5651d6e063
+        uses: muratkeremozcan/playwright-smart-parallelization@410e55dc59543077e0501838bb44c4013c80b8e7
         with:
           enabled: ${{ inputs.enabled }}
           workers: ${{ inputs.workers }}
+          # One history per Action pin, shard count and fullyParallel setting, so each arm warms
+          # from a cold run of its own. The key adds to the workers, which the Action keys on by
+          # itself.
+          history-key: 410e55d-shards-${{ inputs.shards }}${{ inputs.fully-parallel && '-fully-parallel' || '' }}
           # Campaign runs of a pull request publish into its branch's own cache scope, so its
           # warm runs balance from the history its cold run published. On main this is auto.
           publish-history: 'true'
@@ -99,6 +107,7 @@ jobs:
       - name: Run tests
         env:
           WORKERS: ${{ inputs.workers && format('--workers={0}', inputs.workers) || '' }}
+          PW_FULLY_PARALLEL: ${{ inputs.fully-parallel }}
         run: npx playwright test --shard=${{ matrix.shard }}/${{ needs.plan.outputs.total }} $WORKERS $PSP_ARGS
       - name: Upload blob report
         if: ${{ !cancelled() }}
@@ -144,7 +153,7 @@ jobs:
         run: node scripts/check-test-count.ts merged-report.json "${{ needs.plan.outputs.total }}"
       - id: psp
         if: ${{ !cancelled() }}
-        uses: muratkeremozcan/playwright-smart-parallelization/finish@65d649d62779c544dd9d4f358f129a5651d6e063
+        uses: muratkeremozcan/playwright-smart-parallelization/finish@410e55dc59543077e0501838bb44c4013c80b8e7
       # Keeps the Action's outputs after the run, for scripts/measure/collect.ts.
       - name: Record the Action's decision
         if: ${{ !cancelled() }}
