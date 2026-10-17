@@ -1,0 +1,85 @@
+# Duration-balanced shards through playwright-smart-parallelization, dispatched by hand to compare
+# with native.yml. Set up as the Action's README Usage section shows. Results are collected with
+# scripts/measure/collect.ts; see results/README.md.
+name: Smart shards
+# The token lets scripts/measure/campaign.ts find the exact run it dispatched.
+run-name: Smart shards ${{ inputs.shards }} enabled=${{ inputs.enabled }} ${{ inputs.token }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      shards:
+        description: Number of shards
+        type: number
+        required: true
+        default: 4
+      enabled:
+        description: false runs native --shard through the Action (the rollback switch)
+        type: boolean
+        default: true
+      token:
+        description: Dispatch token set by scripts/measure/campaign.ts
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: read # finish reads the jobs API for the per-shard overhead in its summary
+
+# Shares native.yml's group, so a smart run and a native run never execute at the same time.
+concurrency:
+  group: shard-measurement
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.psp.outputs.matrix }}
+      plan: ${{ steps.psp.outputs.plan }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: psp
+        uses: muratkeremozcan/playwright-smart-parallelization@063aba85b7da2bc9f143b653b093160a77783a09
+        with:
+          phase: prepare
+          shards: ${{ inputs.shards }}
+          command: npx playwright test
+          enabled: ${{ inputs.enabled }}
+
+  test:
+    name: Shard ${{ matrix.shard }}/${{ inputs.shards }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # No browser install: no test opens a browser, and native.yml installs none either.
+      - run: npm ci
+      - uses: muratkeremozcan/playwright-smart-parallelization@063aba85b7da2bc9f143b653b093160a77783a09
+        with:
+          phase: run
+          plan: ${{ needs.prepare.outputs.plan }}
+          shard: ${{ matrix.shard }}
+
+  finish:
+    name: Finish
+    needs: [prepare, test]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: muratkeremozcan/playwright-smart-parallelization@063aba85b7da2bc9f143b653b093160a77783a09
+        with:
+          phase: finish
+          plan: ${{ needs.prepare.outputs.plan }}

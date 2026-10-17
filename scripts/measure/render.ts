@@ -5,12 +5,12 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { WORKFLOWS, type RunRecord } from './collect.ts';
+import { ARMS, type RunRecord } from './collect.ts';
 
 const SHARD_JOB = /\b[Ss]hard (\d+)\/(\d+)\b/;
 
 export type RunMetrics = {
-  mode: string;
+  arm: string;
   shardCount: number;
   runId: number;
   headSha: string;
@@ -37,9 +37,32 @@ export const median = (values: number[]): number => {
   return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 
+/** Arms in the order the summary lists them. */
+const ARM_ORDER = ['native', 'smart (cold start)', 'smart', 'rollback'];
+
+/**
+ * The arm a run counts toward. A smart run is `smart` only when the Action balanced it; with no
+ * history it ran native sharding and counts as the cold start. The rollback must have run disabled.
+ */
+export const armOf = (record: RunRecord): string => {
+  if (record.mode === 'native') return 'native';
+  const decided = record.action;
+  if (!decided) throw new Error(`run ${record.run.id} has no Action decision`);
+  if (record.mode === 'rollback') {
+    if (decided.mode !== 'disabled') {
+      throw new Error(`rollback run ${record.run.id} ran ${decided.mode}, not disabled`);
+    }
+    return 'rollback';
+  }
+  if (decided.mode === 'balanced') return 'smart';
+  if (decided.mode === 'native' && decided.reason === 'no history yet') return 'smart (cold start)';
+  throw new Error(`smart run ${record.run.id} ran ${decided.mode}: ${decided.reason}`);
+};
+
 export const metricsOf = (record: RunRecord): RunMetrics => {
   if (
-    record.run.workflowPath !== WORKFLOWS[record.mode] ||
+    !ARMS[record.mode] ||
+    record.run.workflowPath !== ARMS[record.mode].workflow ||
     record.run.event !== 'workflow_dispatch'
   ) {
     throw new Error(
@@ -77,7 +100,7 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
   const starts = record.jobs.map((job) => Date.parse(job.startedAt));
   const ends = record.jobs.map((job) => Date.parse(job.completedAt));
   return {
-    mode: record.mode,
+    arm: armOf(record),
     shardCount: record.shardCount,
     runId: record.run.id,
     headSha: record.run.headSha,
@@ -173,9 +196,20 @@ export const render = (records: RunRecord[]): string => {
     .sort((a, b) => a.shardCount - b.shardCount || a.runId - b.runId);
   const groups = new Map<string, RunMetrics[]>();
   for (const m of metrics) {
-    const key = `${m.mode}|${m.shardCount}`;
+    const key = `${m.arm}|${m.shardCount}`;
     groups.set(key, [...(groups.get(key) ?? []), m]);
   }
+  const ordered = [...groups.entries()].sort(([a], [b]) => {
+    const [armA, countA] = a.split('|');
+    const [armB, countB] = b.split('|');
+    return Number(countA) - Number(countB) || ARM_ORDER.indexOf(armA) - ARM_ORDER.indexOf(armB);
+  });
+  const nativeMedian = (count: string, pick: (m: RunMetrics) => number) => {
+    const runs = groups.get(`native|${count}`);
+    return runs ? median(runs.map(pick)) : null;
+  };
+  const versus = (value: number, base: number | null) =>
+    base === null ? 'n/a' : `${(((value - base) / base) * 100).toFixed(0)}%`;
   const shardCounts = [...new Set(metrics.map((m) => m.shardCount))].sort((a, b) => a - b);
   const bounds = idealBounds(
     records.filter((record) => record.mode === 'native'),
@@ -200,20 +234,32 @@ export const render = (records: RunRecord[]): string => {
     '## Summary',
     '',
     'Medians over the runs of each arm. The ideal bound is the balanced lower bound for the ' +
-      'slowest shard’s Playwright time.',
+      'slowest shard’s Playwright time. "vs native" compares a median with the native median at ' +
+      'the same shard count. `smart` runs are the ones the Action balanced from its history; the ' +
+      'cold start is the first smart run, which had no history and ran native sharding; ' +
+      '`rollback` ran the smart workflow with `enabled: false`.',
     '',
-    '| Arm | Shards | Runs | Slowest shard (Playwright) | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | Queue (max) | Machine time |',
-    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
+    '| Arm | Shards | Runs | Slowest shard (Playwright) | vs native | Ideal bound | Spread (Playwright) | Slowest shard job | Spread (jobs) | Completion | vs native | Queue (max) | Machine time |',
+    '| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
   ];
-  for (const [key, runs] of groups) {
-    const [mode, count] = key.split('|');
+  for (const [key, runs] of ordered) {
+    const [arm, count] = key.split('|');
     const bound = bounds.find((b) => b.shardCount === Number(count));
+    const slowest = median(runs.map((r) => r.slowestPlaywright));
+    const completion = median(runs.map((r) => r.completion));
     lines.push(
-      `| ${mode} | ${count} | ${runs.length} | ${s(median(runs.map((r) => r.slowestPlaywright)))} | ` +
+      `| ${arm} | ${count} | ${runs.length} | ${s(slowest)} | ` +
+        `${versus(
+          slowest,
+          nativeMedian(count, (r) => r.slowestPlaywright),
+        )} | ` +
         `${bound ? s(bound.idealSeconds) : 'n/a'} | ${s(median(runs.map((r) => r.playwrightSpread)))} | ` +
         `${s(median(runs.map((r) => r.slowestJob)))} | ${s(median(runs.map((r) => r.jobSpread)))} | ` +
-        `${s(median(runs.map((r) => r.completion)))} | ${s(median(runs.map((r) => r.queueMax)))} | ` +
-        `${s(median(runs.map((r) => r.machine)))} |`,
+        `${s(completion)} | ${versus(
+          completion,
+          nativeMedian(count, (r) => r.completion),
+        )} | ` +
+        `${s(median(runs.map((r) => r.queueMax)))} | ${s(median(runs.map((r) => r.machine)))} |`,
     );
   }
 
@@ -250,7 +296,7 @@ export const render = (records: RunRecord[]): string => {
     '| --- | ---: | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
     ...metrics.map(
       (m) =>
-        `| ${m.mode} | ${m.shardCount} | [${m.runId}](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/${m.runId}) | ` +
+        `| ${m.arm} | ${m.shardCount} | [${m.runId}](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/${m.runId}) | ` +
         `\`${m.headSha.slice(0, 7)}\` | ${m.shardPlaywrightSeconds.map((v) => v.toFixed(1)).join(' / ')} | ` +
         `${m.shardJobSeconds.map((v) => v.toFixed(0)).join(' / ')} | ${s(m.completion)} | ${s(m.queueMax)} | ${s(m.machine)} | ${m.overlapping} |`,
     ),
