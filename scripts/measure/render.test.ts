@@ -167,6 +167,7 @@ test('render produces the summary, bound and run tables', () => {
     /- native, 2 shards: \[42\]\(https:\/\/github\.com\/muratkeremozcan\/pw-parallel-test\/actions\/runs\/42\)/,
   );
   assert.match(text, /\| overlapped 7 \(test\.yml, push\) \|/);
+  assert.match(text, /\| 1 run, not a median; 1 of 1 run overlapped another run \|/);
 });
 
 test('idealBounds is empty without native runs', () => {
@@ -279,4 +280,15 @@ test('render notes a single branch run in the summary', () => {
     render([record(), branch]),
     /\| 1 run, not a median; ran on results\/smart: read main’s history, published none/,
   );
+});
+
+test('a rollback off main is noted without a history claim', () => {
+  const rollback = smart('rollback', {
+    mode: 'disabled',
+    reason: 'off',
+    coverage: 'not checked',
+    history: 'unchanged',
+  });
+  rollback.run.headBranch = 'results/smart';
+  assert.deepEqual(metricsOf(rollback).branchNotes, ['ran on results/smart']);
 });

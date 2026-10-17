@@ -27,6 +27,7 @@ export type RunMetrics = {
   machine: number;
   notes: string;
   branchNotes: string[];
+  overlapped: boolean;
 };
 
 const seconds = (from: string, to: string) => (Date.parse(to) - Date.parse(from)) / 1000;
@@ -170,12 +171,13 @@ export const metricsOf = (record: RunRecord): RunMetrics => {
     completion: (Math.max(...ends) - Math.min(...starts)) / 1000,
     queueMax,
     machine: jobSeconds.reduce((sum, value) => sum + value, 0),
+    overlapped: record.run.overlappingRuns.length > 0,
     branchNotes:
       record.run.headBranch === 'main'
         ? []
         : [
             `ran on ${record.run.headBranch}` +
-              (record.action?.history === 'unchanged'
+              (record.action?.mode !== 'disabled' && record.action?.history === 'unchanged'
                 ? ': read main’s history, published none, so its finish skipped the history write'
                 : ''),
           ],
@@ -289,10 +291,18 @@ export const render = (records: RunRecord[]): string => {
     return runs ? median(runs.map(pick)) : null;
   };
   /** What a reader must know before comparing an arm's medians: run count, branch, history. */
+  const overlapNote = (runs: RunMetrics[]) => {
+    const overlapped = runs.filter((r) => r.overlapped).length;
+    if (overlapped === 0) return [];
+    return [
+      `${overlapped} of ${runs.length} ${runs.length === 1 ? 'run' : 'runs'} overlapped another run`,
+    ];
+  };
   const armNotes = (runs: RunMetrics[]) => {
     const notes = [
       ...(runs.length === 1 ? ['1 run, not a median'] : []),
       ...[...new Set(runs.flatMap((r) => r.branchNotes))],
+      ...overlapNote(runs),
     ];
     return notes.join('; ') || 'none';
   };
