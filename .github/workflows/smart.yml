@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - id: psp
-        uses: muratkeremozcan/playwright-smart-parallelization@01187a8ec584eff18c9c7b53e6e957781f05fe67
+        uses: muratkeremozcan/playwright-smart-parallelization@cfce541c155c97b6357dc30a6def987b4f5dd22a
         with:
           phase: prepare
           shards: ${{ inputs.shards }}
@@ -68,7 +68,7 @@ jobs:
           cache: npm
       # No browser install: no test opens a browser, and native.yml installs none either.
       - run: npm ci
-      - uses: muratkeremozcan/playwright-smart-parallelization@01187a8ec584eff18c9c7b53e6e957781f05fe67
+      - uses: muratkeremozcan/playwright-smart-parallelization@cfce541c155c97b6357dc30a6def987b4f5dd22a
         with:
           phase: run
           plan: ${{ needs.prepare.outputs.plan }}
@@ -82,7 +82,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - id: psp
-        uses: muratkeremozcan/playwright-smart-parallelization@01187a8ec584eff18c9c7b53e6e957781f05fe67
+        uses: muratkeremozcan/playwright-smart-parallelization@cfce541c155c97b6357dc30a6def987b4f5dd22a
         with:
           phase: finish
           plan: ${{ needs.prepare.outputs.plan }}

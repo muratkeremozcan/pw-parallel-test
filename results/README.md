@@ -26,7 +26,7 @@ repository root is rendered from those records only. No number is typed by hand.
   [38995303917](https://github.com/muratkeremozcan/pw-parallel-test/actions/runs/38995303917) on
   Action 01187a8 uploaded no blob report: in disabled mode that pin adds no blob reporter output
   folder and uploads only its own, so the config's `./blob-report` stays on the runner, and the run
-  has no Playwright times.
+  has no Playwright times. Action cfce541 uploads it, and the rollback was measured again there.
 - Each record lists any other run of the repository whose jobs overlapped it, and RESULTS.md
   shows them, because overlapping runs share the account's runner pool.
 - A record keeps the run, every job with its created, started and completed timestamps from the
