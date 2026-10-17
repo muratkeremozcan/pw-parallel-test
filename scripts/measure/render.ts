@@ -368,11 +368,12 @@ const renderSuite = (records: RunRecord[], level: string): string[] => {
       tests.size === reference.tests.size && [...tests].every((key) => reference.tests.has(key));
     if (!same) throw new Error(`run ${id} executed a different test set than run ${reference.id}`);
   }
+  // fullyParallel on is how most suites run, so its arms lead every table.
   const metrics = records
     .map(metricsOf)
     .sort(
       (a, b) =>
-        Number(a.fullyParallel) - Number(b.fullyParallel) ||
+        Number(b.fullyParallel) - Number(a.fullyParallel) ||
         a.shardCount - b.shardCount ||
         a.workers - b.workers ||
         a.runId - b.runId,
@@ -387,7 +388,7 @@ const renderSuite = (records: RunRecord[], level: string): string[] => {
   const ordered = [...groups.values()].sort((a, b) => {
     const [x, y] = [a[0], b[0]];
     return (
-      Number(x.fullyParallel) - Number(y.fullyParallel) ||
+      Number(y.fullyParallel) - Number(x.fullyParallel) ||
       x.shardCount - y.shardCount ||
       x.workers - y.workers ||
       armRank(x.arm) - armRank(y.arm) ||

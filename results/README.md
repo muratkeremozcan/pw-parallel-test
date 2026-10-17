@@ -43,10 +43,13 @@ across them.
   report carries, and a record whose blobs disagree with the input is refused. The Action keeps a
   whole spec file as its unit either way; native sharding splits a fully parallel suite by test.
 - On the current suite smart.yml first pinned Action c439738 for every arm, then Action 410e55d,
-  which cuts the Action's per-shard and finish overhead, for the arms with `fullyParallel` off.
-  Its `history-key` holds the shard count, plus `-fully-parallel` when that input is on, and from
-  410e55d also the pin, so every arm of pin, shards, workers and `fullyParallel` warms from a cold
-  run of its own. RESULTS.md labels each smart arm with its pin.
+  which cuts the Action's per-shard and finish overhead, for the arms with `fullyParallel` off,
+  then Action d3633df, the v1.0.0 candidate, for the arms with `fullyParallel` on at 4 and 8
+  shards of 2 and 4 workers, where 8 × 4 has three more alternating pairs to tighten a close
+  completion median. RESULTS.md lists those arms first, since most suites run fully parallel.
+  Its `history-key` holds the shard count, plus `-fully-parallel` when that input is on, and
+  from 410e55d also the pin, so every arm of pin, shards, workers and `fullyParallel` warms from
+  a cold run of its own. RESULTS.md labels each smart arm with its pin.
 - Runs are dispatched one at a time, each only once no workflow run of the repository is active,
   and the next waits until the previous one completes, so
   measured runs never compete for runners. The workflow's concurrency group also keeps a second run from starting while one executes; it holds at most one waiting run, and a later dispatch cancels it.

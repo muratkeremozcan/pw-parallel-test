@@ -440,6 +440,15 @@ test('render keeps fullyParallel arms apart and compares each with its own nativ
   assert.match(text, /\| native \| 2 \| 1 \| yes \| 1 \| 26\.5 s \| 0% \|/);
   assert.match(text, /- native, 2 shards, fullyParallel: \[47\]/);
   assert.match(text, /\| 2 \| 1 \| yes \| 35\.0 s \| 40\.0 s \| 43\.0 s \|/);
+  // fullyParallel on leads the summary, the run links, the ideal bound and the runs.
+  for (const heading of ['### Summary', '### Ideal bound', '### Runs']) {
+    const section = text.slice(text.indexOf(heading));
+    assert.ok(section.indexOf('| yes |') < section.indexOf('| no |'), heading);
+  }
+  const links = text.slice(text.indexOf('### Run links'));
+  assert.ok(
+    links.indexOf('- native, 2 shards, fullyParallel') < links.indexOf('- native, 2 shards:'),
+  );
 });
 
 test('completion leaves out the bookkeeping steps, and the finish step when asked', () => {
