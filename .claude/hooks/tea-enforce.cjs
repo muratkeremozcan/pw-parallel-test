@@ -32,19 +32,24 @@
  *   3. A whole-file rule (H5's 1000-line ceiling, C4's "this flow asserts nothing
  *      anywhere") cannot be decided from a fragment at all.
  *
- * So: `--pre` is the fast block on the fragment about to be written; `--post`
+ * So: `--pre` is the fast block on the write about to land. For an Edit or
+ * MultiEdit it applies the edit to the file on disk and scans the result whole,
+ * reporting only what the edit introduced, so a fragment inside an existing
+ * comment is read as a comment and a violation spanning the fragment's edge is
+ * seen; it scans the bare fragment only when the file cannot be read. `--post`
  * re-reads the affected file(s) from disk in full and applies the same rules,
- * which is what catches Bash writes and split edits; `--stop` sweeps recently
- * modified test files at the end of a turn, which is what catches a codegen script
- * that wrote files it never named. File-scope rules (H5, C4) run in `--pre` only
- * for `Write`, where the whole content is genuinely present.
+ * which is what catches Bash writes; `--stop` sweeps recently modified test files
+ * at the end of a turn, which is what catches a codegen script that wrote files it
+ * never named. File-scope rules (H5, C4) skip only that bare-fragment fallback.
  *
  * FALSE POSITIVES
  *
  * Comments and string literals are stripped, per language, before any pattern runs.
  * A doc example that writes `await page.waitForTimeout(500)` inside a fenced block
  * in a `.md` is not a violation and this hook does not claim it is. Line numbers
- * survive stripping because stripped characters are replaced by spaces.
+ * survive stripping because stripped characters are replaced by spaces. Rules
+ * whose construct a formatter splits across lines (C2, C3) match the whole
+ * stripped source and map each match back to the line it starts on.
  *
  * GATES
  *
@@ -104,6 +109,7 @@ const DEFAULT_CONFIG = {
     '**/*Test.java',
     '**/*Tests.java',
     '**/*IT.java',
+    '**/*{Test,Tests,IT}.kt',
     '.maestro/**/*.{yaml,yml}',
     'maestro/**/*.{yaml,yml}',
   ],
@@ -282,7 +288,31 @@ function blank(length) {
   return ' '.repeat(length);
 }
 
-function stripCLike(source) {
+/**
+ * A string or regex literal, rendered for the requested view: blanked (the
+ * default, for matching), kept (for reading operands), or masked with `x` (for
+ * knowing which characters of a kept operand are inside a literal; see
+ * `codeInMask` for everything else in that view). Every view
+ * is the same length, so offsets line up across all three. The blanked view keeps
+ * newlines so line numbers survive; the mask marks them too, because a newline
+ * inside a literal is part of its value.
+ */
+function literal(source, start, end, mode) {
+  const text = source.slice(start, end);
+  if (mode === 'keep') return text;
+  if (mode === 'mask') return 'x'.repeat(text.length);
+  return text.replaceAll(/[^\n]/g, ' ');
+}
+
+/**
+ * Code outside a literal, in the masked view: blank, newlines kept. The mask must
+ * hold nothing but `x` for literal positions, or an identifier ending in `x`
+ * would merge with the literal after it (a template tagged `x` would read as a
+ * literal opening with `x`, not with a backtick).
+ */
+const codeInMask = (character) => (character === '\n' ? '\n' : ' ');
+
+function stripCLike(source, literals, kind, kotlinRaw = false) {
   let out = '';
   let index = 0;
   // Whether a `/` at this position could open a regex literal rather than divide.
@@ -329,11 +359,29 @@ function stripCLike(source) {
         scan += 1;
       }
       if (closed) {
-        out += blank(scan - index);
+        out += literal(source, index, scan, literals);
         index = scan;
         regexAllowed = false;
         continue;
       }
+    }
+
+    if (kind === 'java' && source.startsWith('"""', index)) {
+      let scan = index + 3;
+      while (scan < source.length) {
+        if (source.startsWith('"""', scan)) {
+          scan += 3;
+          break;
+        }
+        // Java text blocks allow escaped quotes. Kotlin raw strings close at
+        // the same delimiter; preserving offsets keeps the operand views aligned.
+        if (!kotlinRaw && source[scan] === '\\') scan += 2;
+        else scan += 1;
+      }
+      out += literal(source, index, scan, literals);
+      index = scan;
+      regexAllowed = false;
+      continue;
     }
 
     if (character === '"' || character === "'" || character === '`') {
@@ -351,20 +399,20 @@ function stripCLike(source) {
         if (quote !== '`' && source[scan] === '\n') break;
         scan += 1;
       }
-      for (let position = index; position < scan; position += 1) out += source[position] === '\n' ? '\n' : ' ';
+      out += literal(source, index, scan, literals);
       index = scan;
       regexAllowed = true;
       continue;
     }
 
-    out += character;
+    out += literals === 'mask' ? codeInMask(character) : character;
     if (!/\s/.test(character)) regexAllowed = /[(,=:[!&|?{};+\-*%<>~^]/.test(character);
     index += 1;
   }
   return out;
 }
 
-function stripPython(source) {
+function stripPython(source, literals) {
   let out = '';
   let index = 0;
   while (index < source.length) {
@@ -382,7 +430,7 @@ function stripPython(source) {
     if (triple === '"""' || triple === "'''") {
       const end = source.indexOf(triple, index + 3);
       const stop = end === -1 ? source.length : end + 3;
-      for (let scan = index; scan < stop; scan += 1) out += source[scan] === '\n' ? '\n' : ' ';
+      out += literal(source, index, stop, literals);
       index = stop;
       continue;
     }
@@ -401,12 +449,12 @@ function stripPython(source) {
         }
         scan += 1;
       }
-      out += blank(scan - index);
+      out += literal(source, index, scan, literals);
       index = scan;
       continue;
     }
 
-    out += character;
+    out += literals === 'mask' ? codeInMask(character) : character;
     index += 1;
   }
   return out;
@@ -441,13 +489,13 @@ function stripYaml(source) {
     .join('\n');
 }
 
-function stripNoise(source, kind) {
+function stripNoise(source, kind, relativePath = '') {
   switch (kind) {
     case 'js':
     case 'java':
     case 'go':
     case 'pactconfig': {
-      return stripCLike(source);
+      return stripCLike(source, undefined, kind, relativePath.endsWith('.kt'));
     }
     case 'py': {
       return stripPython(source);
@@ -461,23 +509,157 @@ function stripNoise(source, kind) {
   }
 }
 
+/**
+ * Comments blanked, string and regex literals kept (`mode: 'keep'`) or masked
+ * (`mode: 'mask'`), same length as the input.
+ *
+ * `stripNoise` is right for deciding WHERE a pattern matches, and wrong for
+ * deciding what an operand IS: once literal contents are blanked,
+ * `result['actual']` and `result['expected']` are both `result[          ]`.
+ * C3 finds its match on the stripped text and reads the operands from the kept
+ * view, at the same offsets; the masked view says which of those characters sit
+ * inside a literal, where whitespace is part of the value.
+ */
+function stripComments(source, kind, mode, relativePath = '') {
+  switch (kind) {
+    case 'js':
+    case 'java':
+    case 'go':
+    case 'pactconfig': {
+      return stripCLike(source, mode, kind, relativePath.endsWith('.kt'));
+    }
+    case 'py': {
+      return stripPython(source, mode);
+    }
+    default: {
+      // Maestro YAML has no C3 and no kept view; callers use the stripped text.
+      return null;
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers shared by the rule predicates
 // ---------------------------------------------------------------------------
 
-const normalizeOperand = (value) => String(value).replaceAll(/\s+/g, '').replace(/;$/, '');
-
-/** A pair of equal operands is the mechanical core of C3. */
-function selfComparison(line, pattern) {
-  const matches = [...line.matchAll(pattern)];
-  return matches.some((match) => {
-    const left = normalizeOperand(match[1] ?? '');
-    const right = normalizeOperand(match[2] ?? '');
-    return left.length > 0 && left === right;
-  });
+/**
+ * An operand with the whitespace outside its literals removed.
+ *
+ * Whitespace inside a string or regex literal is part of the value: `'a b'` and
+ * `'ab'` differ, as do `/a b/` and `/ab/`, and collapsing them would turn a
+ * comparison that can fail into a reported tautology. `mask` is the same slice of
+ * the masked view, `x` wherever the character is inside a literal.
+ */
+function normalizeOperand(value, mask) {
+  return value.replaceAll(/\s/g, (character, offset) => (mask[offset] === 'x' ? character : '')).replace(/;$/, '');
 }
 
-const SKIP_TOKEN = /\.skip|xit|xdescribe|test\.todo|@Ignore|@Disabled|pytest\.mark\.skip/;
+/**
+ * Whether a JavaScript operand contains a template literal that interpolates.
+ * Stripping blanks the whole template, `${...}` included, so the operand pattern
+ * cannot see a call or an `i++` inside it, and two textually equal templates can
+ * still evaluate to different values. Such operands are never reported.
+ *
+ * Only a literal that OPENS with a backtick is a template. A backtick inside a
+ * quoted string is data, and Go's backtick raw strings never interpolate, so
+ * `${` in either is a constant.
+ */
+function interpolates(text, mask, kind) {
+  if (kind !== 'js') return false;
+  for (const run of mask.matchAll(/x+/g)) {
+    const body = text.slice(run.index, run.index + run[0].length);
+    if (body.startsWith('`') && body.includes('${')) return true;
+  }
+  return false;
+}
+
+/**
+ * `[start, end]` of every match whose two operands are the same expression: the
+ * mechanical core of C3.
+ *
+ * The pattern runs on the stripped source, so a quote or comment cannot fake a
+ * match. The operands are read from the kept view (comments blanked, literals
+ * intact) at the match's group offsets, so two operands that differ only inside
+ * a literal still compare different. Each operand group must span everything
+ * between its delimiters, surrounding whitespace included: a group that stops at
+ * the last non-blank stripped character would cut `x + 'a'` down to `x +`.
+ */
+function selfComparisons(stripped, views, pattern) {
+  const spans = [];
+  for (const match of stripped.matchAll(pattern)) {
+    const ranges = [1, 2].map((group) => match.indices[group] ?? [0, 0]);
+    if (operandsMatch(views, ranges)) spans.push([match.index, match.index + match[0].length]);
+  }
+  return spans;
+}
+
+/** Whether the two `[start, end]` ranges read as the same expression. */
+function operandsMatch(views, ranges) {
+  const operands = ranges.map(([start, end]) => ({ text: views.code.slice(start, end), mask: views.mask.slice(start, end) }));
+  if (operands.some(({ text, mask }) => interpolates(text, mask, views.kind))) return false;
+  const [left, right] = operands.map(({ text, mask }) => normalizeOperand(text, mask));
+  return left.length > 0 && left === right;
+}
+
+/**
+ * The top-level arguments of the call whose argument list starts at `from` (the
+ * index right after the opening paren), as `[start, end]` ranges, or null when the
+ * call never closes. `()`, `[]` and `{}` nest, so a comma inside an array, an
+ * object or a nested call never splits an argument. It reads the stripped view,
+ * where a literal is blank and cannot fake a bracket or a comma. A trailing comma
+ * leaves no empty last argument.
+ */
+function callArguments(stripped, from) {
+  const ranges = [];
+  let depth = 0;
+  let start = from;
+  for (let index = from; index < stripped.length; index += 1) {
+    const character = stripped[index];
+    if ('([{'.includes(character)) depth += 1;
+    else if (')]}'.includes(character)) {
+      if (depth === 0) {
+        if (character !== ')') return null;
+        ranges.push([start, index]);
+        if (ranges.length > 1 && stripped.slice(...ranges.at(-1)).trim() === '') ranges.pop();
+        return ranges;
+      }
+      depth -= 1;
+    } else if (character === ',' && depth === 0) {
+      ranges.push([start, index]);
+      start = index + 1;
+    }
+  }
+  return null;
+}
+
+/**
+ * `selfComparisons` for assertion calls that take the compared values as their
+ * first two arguments. `prefix` matches up to the first of them.
+ *
+ * The arguments are split at top-level commas, so `assert.deepStrictEqual([1, [1, 2]], actual)`
+ * compares `[1, [1, 2]]` against `actual`. An operand with a paren in it holds a
+ * call or a grouping, which can evaluate differently each time, and is never
+ * reported.
+ */
+function selfComparingCalls(stripped, views, prefix) {
+  const spans = [];
+  for (const match of stripped.matchAll(prefix)) {
+    const from = match.index + match[0].length;
+    const args = callArguments(stripped, from);
+    if (!args || args.length < 2) continue;
+    const ranges = args.slice(0, 2);
+    if (ranges.some(([start, end]) => /[()]/.test(stripped.slice(start, end)))) continue;
+    if (operandsMatch(views, ranges)) spans.push([match.index, ranges[1][1]]);
+  }
+  return spans;
+}
+
+/** `[start, end]` of every match of `pattern` (which must carry the `g` flag). */
+function matchSpans(source, pattern) {
+  return [...source.matchAll(pattern)].map((match) => [match.index, match.index + match[0].length]);
+}
+
+const SKIP_TOKEN = /\.skip|\.fixme|\.Skip|xit|xdescribe|test\.todo|@Ignore|@Disabled|pytest\.mark\.skip/;
 
 /**
  * Where this line's comment starts, or -1.
@@ -516,8 +698,39 @@ function commentIndex(line, kind) {
   return -1;
 }
 
+/**
+ * Whether the call matched by `callPattern` on this line carries a non-empty
+ * string literal as its argument number `argIndex` (zero-based).
+ *
+ * The argument boundaries come from the stripped line, where every literal is
+ * blank, so a comma or a paren inside a test title cannot fake one. The string
+ * itself is read from the kept line (`code`) at the same offset: the stripped
+ * line has no quote left to find.
+ */
+function callHasStringArgument(stripped, code, callPattern, argIndex) {
+  const call = callPattern.exec(stripped);
+  if (!call) return false;
+  let depth = 0;
+  let argument = 0;
+  let start = call.index + call[0].length;
+  for (let index = start; argument < argIndex && index < stripped.length; index += 1) {
+    const character = stripped[index];
+    if ('([{'.includes(character)) depth += 1;
+    else if (')]}'.includes(character)) {
+      if (depth === 0) break;
+      depth -= 1;
+    } else if (character === ',' && depth === 0) {
+      argument += 1;
+      start = index + 1;
+    }
+  }
+  if (argument !== argIndex) return false;
+  const opening = code.slice(start).match(/^\s*(["'`])(?!\1)/);
+  return Boolean(opening);
+}
+
 /** C1's escape hatch: a comment on the line or the line above documents the skip. */
-function hasAdjacentComment(rawLines, lineIndex, kind) {
+function hasAdjacentComment(rawLines, lineIndex, kind, stripped = '', code = '') {
   const current = rawLines[lineIndex] || '';
   const above = (rawLines[lineIndex - 1] || '').trim();
 
@@ -528,9 +741,17 @@ function hasAdjacentComment(rawLines, lineIndex, kind) {
   // and `@Disabled("...")` are the documented forms in their languages, and the
   // reason sits in a different argument position in each. An annotation call with
   // any string literal in it is the honest predicate; pinning the position would
-  // pass one language and fail the other. JavaScript has no such form, so this
-  // branch is scoped rather than applied everywhere.
+  // pass one language and fail the other. This branch is scoped to the languages
+  // that have annotations.
   if ((kind === 'py' || kind === 'java') && /@[\w.]+\s*\(/.test(current) && /["']/.test(current)) return true;
+
+  // JavaScript and Go put the reason inside the call. Playwright documents
+  // `test.skip(condition, 'reason')` and `test.fixme(condition, 'reason')`: the
+  // reason is the second argument. Go's `t.Skip("reason")` and `t.Skipf("...")`
+  // carry it as the first. Only a non-empty string counts, so `test.skip(cond)`,
+  // `test.skip(title, fn)` and an empty `""` still report.
+  if (kind === 'js' && callHasStringArgument(stripped, code, /\.(?:skip|fixme)\s*\(/, 1)) return true;
+  if (kind === 'go' && callHasStringArgument(stripped, code, /\.Skip(?:f)?\s*\(/, 0)) return true;
 
   // A trailing comment AFTER the token. One before it documents something else.
   const tokenIndex = current.search(SKIP_TOKEN);
@@ -546,6 +767,142 @@ function hasAdjacentComment(rawLines, lineIndex, kind) {
 // the reason it is not a block.
 // ---------------------------------------------------------------------------
 
+/**
+ * Whether the bare identifier `delay` is MSW's `delay` in this file: imported as
+ * `import { delay } from 'msw'` (also a subpath, also beside a default import) or
+ * destructured as `const { delay } = require('msw')`. Read from the kept view
+ * because the module name is a string literal. An aliased `delay as X` leaves the
+ * bare name free, and a `delay` from any other module is a real wait and still
+ * fires. Member calls such as `msw.delay(300)` never match the bare-call pattern.
+ */
+const MSW_MODULE = String.raw`['"]msw(?:\/[\w/-]+)?['"]`;
+const MSW_NAMED_IMPORT = new RegExp(String.raw`\bimport\s+(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s*${MSW_MODULE}`, 'g');
+const MSW_DESTRUCTURE = new RegExp(
+  String.raw`\b(?:const|let|var)\s*\{([^}]*)\}\s*=\s*(?:await\s+)?(?:require\s*\(|import\s*\()\s*${MSW_MODULE}\s*\)`,
+  'g',
+);
+
+function bindsMswDelay(code) {
+  const binds = (list, separator) =>
+    list.split(',').some((entry) => {
+      const [name, local = name] = entry
+        .replace(/=.*$/s, '')
+        .trim()
+        .split(separator)
+        .map((part) => part.trim());
+      return name === 'delay' && local === 'delay';
+    });
+  return (
+    [...code.matchAll(MSW_NAMED_IMPORT)].some((match) => binds(match[1].replaceAll(/\btype\s+(?=[\w$])/g, ''), /\s+as\s+/)) ||
+    [...code.matchAll(MSW_DESTRUCTURE)].some((match) => binds(match[1], /\s*:\s*/))
+  );
+}
+
+/**
+ * The index just past the bracket that closes the one at `open`, or -1.
+ * `([{` nest as one family; `<` is not a bracket here.
+ */
+function closingIndex(source, open) {
+  let depth = 0;
+  for (let index = open; index < source.length; index += 1) {
+    const character = source[index];
+    if ('([{'.includes(character)) depth += 1;
+    else if (')]}'.includes(character)) {
+      depth -= 1;
+      if (depth === 0) return index + 1;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Where a TypeScript return-type annotation ends, given the index of its colon on
+ * the stripped source: `'body'` when a `{` opens a function body after it,
+ * `'signature'` when the type is cut off by `;`, `,`, a closing bracket or the end
+ * of the line, and null when the shape is neither.
+ *
+ * A `{` right after `:`, `|`, `&`, `,`, `(`, `<`, `=>` or inside generics is a type
+ * literal and is skipped as a whole. Any other `{` is the body.
+ */
+function returnTypeEnd(source, colon) {
+  let angle = 0;
+  let previous = ':';
+  let arrow = false;
+  for (let index = colon + 1; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === '\n') {
+      if (angle > 0) continue;
+      const continues = /^\s*(?:\|(?!\|)|&(?!&))/.test(source.slice(index + 1)) || '|&:,<'.includes(previous) || arrow;
+      if (continues) continue;
+      return 'signature';
+    }
+    if (/\s/.test(character)) continue;
+    const opensLiteral = angle > 0 || arrow || ':|&,(<'.includes(previous);
+    if (character === '{' && !opensLiteral) return 'body';
+    if ('([{'.includes(character)) {
+      const end = closingIndex(source, index);
+      if (end === -1) return null;
+      index = end - 1;
+      previous = source[index];
+      arrow = false;
+      continue;
+    }
+    if (character === '=' && source[index + 1] === '>') {
+      index += 1;
+      previous = '>';
+      arrow = true;
+      continue;
+    }
+    arrow = false;
+    if (character === '<') angle += 1;
+    else if (character === '>' && angle > 0) angle -= 1;
+    else if (angle === 0 && ';,)}]'.includes(character)) return 'signature';
+    else if (angle === 0 && character === '=') return null;
+    previous = character;
+  }
+  return 'signature';
+}
+
+/** A modifier a TypeScript member may carry before its name. */
+const MEMBER_MODIFIERS = String.raw`(?:(?:public|private|protected|static|abstract|readonly|async|declare|override)\s+)*`;
+
+/**
+ * Spans of the `sleep(...)` calls in JavaScript or TypeScript, leaving out the
+ * places that declare a helper named sleep and wait on nothing:
+ *
+ * - `function sleep(ms) {`, `declare function sleep(ms): Promise<void>;`
+ * - a method with a body: `sleep(cb: () => void) {}`, `sleep(): { ok: boolean } {}`,
+ *   `async sleep(): Promise<void> {`, with the parameter list read to its balanced
+ *   closing paren so parens and braces inside it do not end it early
+ * - a body-less signature in an interface, type literal, abstract class or
+ *   overload list: `sleep(ms: number): Promise<void>;`, where the name starts a
+ *   member (after `{`, `;`, `,`, `}`, or at the head of its line, behind any
+ *   modifiers) and a `: type` follows the parameters on the same line.
+ *
+ * A ternary `cond ? sleep(1) : other` is a call: `sleep` is not at the head of a
+ * member there. Anything not recognised as one of the shapes above is a call.
+ */
+function sleepCalls(source) {
+  const spans = [];
+  const memberHead = new RegExp(String.raw`(?:^|[\n{;,}])[ \t]*${MEMBER_MODIFIERS}$`);
+  for (const match of source.matchAll(/(?<![\w.$])sleep\s*\(/g)) {
+    const before = source.slice(Math.max(0, match.index - 200), match.index);
+    if (/\bfunction\s*\*?\s*$/.test(before)) continue;
+    const open = match.index + match[0].length - 1;
+    const close = closingIndex(source, open);
+    if (close !== -1) {
+      if (/^\s*\{/.test(source.slice(close, close + 40))) continue;
+      const colon = source.slice(close, close + 40).match(/^[ \t]*:/);
+      if (colon) {
+        const end = returnTypeEnd(source, close + colon[0].length - 1);
+        if (end === 'body' || (end === 'signature' && memberHead.test(before))) continue;
+      }
+    }
+    spans.push([match.index, match.index + match[0].length]);
+  }
+  return spans;
+}
+
 const RULES = [
   {
     id: 'C1',
@@ -559,17 +916,19 @@ const RULES = [
     // fight TEA's doctrine and train users to disable the hook.
     actionReason: 'the row is conditioned on a documented, still-true reason, which is not mechanically decidable',
     scope: 'line',
-    kinds: ['js', 'py', 'java'],
+    kinds: ['js', 'py', 'java', 'go'],
     fix: 'Delete the test, or document why it is skipped on the line or the line above and keep that reason true.',
     match(line, context) {
       const patterns = {
-        js: /(?:^|[^\w.])(?:x(?:it|describe|test)\s*\(|\w+\.skip\s*[(.]|\w+\.todo\s*\()/,
-        py: /@pytest\.mark\.skip/,
+        js: /(?:^|[^\w.])(?:x(?:it|describe|test)\s*\(|\w+(?:\.\w+)*\.(?:skip|fixme)\s*[(.]|\w+\.todo\s*\()/,
+        py: /@(?:pytest\.mark\.skip|unittest\.skip)/,
+        // No identifier is required before the dot: `s.T().Skip()` is a skip too.
+        go: /\.Skip(?:f|Now)?\s*\(/,
         java: /@(?:Ignore|Disabled)\b/,
       };
       const pattern = patterns[context.kind];
       if (!pattern || !pattern.test(line)) return false;
-      return !hasAdjacentComment(context.rawLines, context.lineIndex, context.kind);
+      return !hasAdjacentComment(context.rawLines, context.lineIndex, context.kind, line, context.code);
     },
   },
   {
@@ -578,11 +937,13 @@ const RULES = [
     severity: 'CRITICAL',
     gate: 'Absolute',
     action: 'block',
-    scope: 'line',
+    // Source scope because formatters split chains: `test.only\n("x", ...)` is as
+    // focused as the one-line form, and a per-line scan never sees it.
+    scope: 'source',
     kinds: ['js'],
     fix: 'Remove `.only` / `fdescribe` / `fit`. A committed focus silently disables every sibling test in the file.',
-    match(line) {
-      return /(?:^|[^\w.])(?:fdescribe|fit|ftest)\s*\(/.test(line) || /\.only\s*[(.]/.test(line);
+    matchSource(stripped) {
+      return [...matchSpans(stripped, /(?<![\w.])(?:fdescribe|fit|ftest)\s*\(/g), ...matchSpans(stripped, /\.only\s*[(.]/g)];
     },
   },
   {
@@ -591,33 +952,56 @@ const RULES = [
     severity: 'CRITICAL',
     gate: 'Absolute',
     action: 'block',
-    scope: 'line',
+    // Source scope because formatters split chains: `expect(actual)\n  .toBe(actual)`
+    // is the same tautology as the one-line form.
+    scope: 'source',
     kinds: ['js', 'py', 'java', 'go'],
     fix: 'Assert the value the system under test produced against an expectation that could differ from it.',
-    match(line, context) {
+    matchSource(stripped, context) {
       if (context.kind === 'js') {
         // `.not.` is excluded on purpose: `expect(x).not.toBe(x)` is a defect too,
         // but it always FAILS, so it is not the "test cannot fail" failure this row
         // is about, and blocking it would be this hook overreaching its row.
-        return selfComparison(
-          line,
-          /expect\s*\(\s*([^(),]+?)\s*\)\s*\.\s*(?:to\s*\.\s*)?(?:toBe|toEqual|toStrictEqual|toBeCloseTo|equal|equals|eql|deep\s*\.\s*equal)\s*\(\s*([^(),]+?)\s*\)/g,
-        );
+        return [
+          ...selfComparisons(
+            stripped,
+            context,
+            /expect\s*\(([^(),]+?)\)\s*\.\s*(?:to\s*\.\s*)?(?:toBe|toEqual|toStrictEqual|toBeCloseTo|equal|equals|eql|deep\s*\.\s*equal)\s*\(([^(),]+?)\)/dg,
+          ),
+          // node:assert and chai's assert style. The optional third argument is a
+          // message, and `notStrictEqual` always fails, so it is not listed.
+          ...selfComparingCalls(stripped, context, /(?<![\w$])assert\s*\.\s*(?:strictEqual|equal|deepStrictEqual|deepEqual)\s*\(/g),
+        ];
       }
       if (context.kind === 'py') {
-        return selfComparison(line, /assert\s+([^=<>!\s]+)\s*==\s*([^=<>!\s#]+)/g);
+        // Horizontal whitespace only: a Python statement does not continue onto the
+        // next line without a bracket or a backslash, so `\s` here would pair an
+        // `assert` with a `==` on a later, unrelated line.
+        return [
+          ...selfComparisons(stripped, context, /assert[ \t]+([^=<>!\s]+)[ \t]*==[ \t]*([^=<>!\s#]+)/dg),
+          // unittest. The third argument, when present, is a message.
+          ...selfComparingCalls(
+            stripped,
+            context,
+            /\bself\s*\.\s*assert(?:Equal|Equals|Is|CountEqual|ListEqual|DictEqual|TupleEqual|SetEqual|SequenceEqual|AlmostEqual)\s*\(/g,
+          ),
+          // `assert True, "msg"` is as inert as `assert True`. `assert True == x` is not it.
+          ...matchSpans(stripped, /^[ \t]*assert[ \t]+True[ \t]*(?=,|$)/gm),
+        ];
       }
       if (context.kind === 'java') {
-        return (
-          /assertTrue\s*\(\s*true\s*\)/.test(line) ||
-          /assertFalse\s*\(\s*false\s*\)/.test(line) ||
-          selfComparison(line, /assertEquals\s*\(\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)/g)
-        );
+        return [
+          ...matchSpans(stripped, /assertTrue\s*\(\s*true\s*\)/g),
+          ...matchSpans(stripped, /assertFalse\s*\(\s*false\s*\)/g),
+          ...selfComparisons(stripped, context, /assertEquals\s*\(([^,()]+?),([^,()]+?)\)/dg),
+          // AssertJ.
+          ...selfComparisons(stripped, context, /assertThat\s*\(([^,()]+?)\)\s*\.\s*(?:isEqualTo|isSameAs)\s*\(([^,()]+?)\)/dg),
+        ];
       }
       if (context.kind === 'go') {
-        return selfComparison(line, /assert\.(?:Equal|EqualValues)\s*\(\s*t\s*,\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)/g);
+        return selfComparisons(stripped, context, /(?:assert|require)\.(?:Equal|EqualValues)\s*\(\s*t\s*,([^,()]+?),([^,()]+?)\)/dg);
       }
-      return false;
+      return [];
     },
   },
   {
@@ -635,7 +1019,10 @@ const RULES = [
     scope: 'file',
     kinds: ['maestro'],
     fix: 'Add `assertVisible`, `assertNotVisible`, `assertTrue`, or `extendedWaitUntil` on the destination state. A flow that only taps passes as long as the taps land.',
-    matchFile(strippedSource) {
+    matchFile(strippedSource, context) {
+      // Reusable Maestro fixtures live in the documented subflows directory.
+      // Other rules, including hard waits, still apply to these files.
+      if (/(?:^|\/)subflows\//.test(context.relativePath.replaceAll('\\', '/'))) return false;
       if (!/^\s*(?:-\s*)?(?:appId|tags)\s*:/m.test(strippedSource) && !/^\s*-\s*(?:launchApp|tapOn|inputText)\b/m.test(strippedSource)) {
         // Not a Maestro flow, just a YAML file that happened to match a glob.
         return false;
@@ -649,21 +1036,57 @@ const RULES = [
     severity: 'HIGH',
     gate: 'Absolute',
     action: 'block',
-    scope: 'line',
+    scope: 'source',
     kinds: ['js', 'py', 'java', 'go', 'maestro'],
-    fix: 'Wait on the condition, not the clock: a web-first assertion, an explicit readiness signal, `cy.wait("@alias")`, or `extendedWaitUntil` in a Maestro flow.',
-    match(line, context) {
+    fix: 'Wait on a web-first assertion, an explicit readiness signal, `cy.wait("@alias")`, or `extendedWaitUntil` in a Maestro flow.',
+    matchSource(source, context) {
+      // The timer a hard wait hands to a Promise executor, ending at the delay's
+      // first digit. It must CALL the resolver: `setTimeout(r, 1000)` and
+      // `setTimeout(() => r(), 1000)` wait, while `setTimeout(() => reject(...), 5000)`
+      // is a timeout guard on something else and stays silent.
+      const timer = (resolver) => `setTimeout\\s*\\(\\s*(?:${resolver}|\\(\\s*\\)\\s*=>\\s*${resolver}\\s*\\(\\s*\\))\\s*,\\s*\\d`;
+      // The optional `<void>` is the TypeScript type argument on `new Promise<void>(`.
+      const promise = String.raw`\bnew\s+Promise\s*(?:<[^<>()]*>)?\s*\(\s*`;
+      const params = String.raw`([\w$]+)\s*(?:,\s*[\w$]+\s*)?`;
+      const firstParam = String.raw`\1`;
       const patterns = {
-        js: /(?:\bwaitForTimeout\s*\(|\bcy\.wait\s*\(\s*\d|(?:^|[^\w.])sleep\s*\(|\bdelay\s*\(\s*\d)/,
-        py: /(?:\btime\.sleep\s*\(|(?:^|[^\w.])sleep\s*\()/,
-        java: /\bThread\.sleep\s*\(/,
-        // The row's own catch-all — "or any bare timer used to order steps" — is
-        // what carries Go here; `time.Sleep` is the language's only spelling of it.
-        go: /\btime\.Sleep\s*\(/,
-        maestro: /^\s*-\s*sleep\s*:/,
+        js: [
+          /\bwaitForTimeout\s*\(/g,
+          /\bcy\.wait\s*\(\s*\d/g,
+          // MSW's `delay()` simulates server latency inside a handler, so it is
+          // left out when the bare `delay` is the one imported from msw. A member
+          // call such as `nockScope.delay(200)` belongs to a library and is left
+          // out too.
+          ...(bindsMswDelay(context.code) ? [] : [/(?<![\w.$])delay\s*\(\s*\d/g]),
+          /\bawait\s+setTimeout\s*\(\s*\d/g,
+          new RegExp(String.raw`${promise}(?:\(\s*)?${params}\)?\s*=>\s*(?:{\s*)?${timer(firstParam)}`, 'g'),
+          new RegExp(String.raw`${promise}function\s*\(\s*${params}\)\s*{\s*${timer(firstParam)}`, 'g'),
+        ],
+        py: [
+          /\btime\.sleep\s*\(/g,
+          // `def sleep(self):` defines a helper.
+          /(?<![\w.])(?<!\bdef\s+)sleep\s*\(/g,
+          // `asyncio.sleep(0)` is a cooperative yield, not a wait.
+          /\basyncio\.sleep\s*\((?!\s*0(?:\.0*)?\s*\))/g,
+        ],
+        // Kotlin's `delay()` stays out on purpose: under `runTest` it advances
+        // virtual time and waits on nothing.
+        java: [
+          /\bThread\.sleep\s*\(/g,
+          /\b(?:TimeUnit\.)?(?:NANOSECONDS|MICROSECONDS|MILLISECONDS|SECONDS|MINUTES|HOURS|DAYS)\.sleep\s*\(/g,
+        ],
+        // A bare `<-time.After(d)` statement blocks for d. Inside a select it is
+        // `case <-time.After(d):`, a timeout guard, and the line does not start with
+        // the receive.
+        go: [/\btime\.Sleep\s*\(/g, /(?:^|[;{])[ \t]*<-[ \t]*time\.After\s*\(/gm],
+        maestro: [/^[ \t]*-[ \t]*sleep[ \t]*:/gm],
       };
-      const pattern = patterns[context.kind];
-      return Boolean(pattern && pattern.test(line));
+      return [
+        ...patterns[context.kind].flatMap((pattern) =>
+          [...source.matchAll(pattern)].map((match) => [match.index, match.index + match[0].length]),
+        ),
+        ...(context.kind === 'js' ? sleepCalls(source) : []),
+      ].sort((a, b) => a[0] - b[0]);
     },
   },
   {
@@ -705,11 +1128,18 @@ const RULES = [
     scope: 'line',
     kinds: ['pactconfig'],
     fix: 'Remove the setting. Pact runs must stay serialized: no concurrent sequence, one worker, isolation on.',
-    match(line) {
+    match(line, context) {
       if (/concurrent\s*:\s*true/.test(line)) return true;
       if (/isolate\s*:\s*false/.test(line)) return true;
-      const concurrency = /(?:maxConcurrency|maxWorkers|minWorkers)\s*:\s*(\d+)/.exec(line);
-      return Boolean(concurrency && Number(concurrency[1]) > 1);
+      // Match keys in code, then read a numeric literal from the kept view.
+      // This accepts Vitest's quoted counts without treating string examples as settings.
+      for (const key of line.matchAll(/\b(?:maxConcurrency|maxWorkers|minWorkers)\s*:\s*/g)) {
+        const value = context.code
+          .slice(key.index + key[0].trimEnd().length)
+          .match(/^\s*(?:(\d[\d_]*(?:\.[\d_]*)?(?:[eE][+-]?\d[\d_]*)?)|(['"])(\d+)\2)/);
+        if (value && Number((value[1] ?? value[3]).replaceAll('_', '')) > 1) return true;
+      }
+      return false;
     },
   },
 ];
@@ -746,6 +1176,24 @@ function activeRules(config) {
   return RULES.filter((rule) => !disabled.has(rule.id));
 }
 
+function lineStartOffsets(source) {
+  const starts = [0];
+  for (let index = source.indexOf('\n'); index !== -1; index = source.indexOf('\n', index + 1)) starts.push(index + 1);
+  return starts;
+}
+
+/** Zero-based line holding `offset`, by binary search over line starts. */
+function lineAt(lineStarts, offset) {
+  let low = 0;
+  let high = lineStarts.length - 1;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (lineStarts[middle] <= offset) low = middle;
+    else high = middle - 1;
+  }
+  return low;
+}
+
 /**
  * Apply every open-gated rule to one file's content.
  *
@@ -765,10 +1213,13 @@ function scanContent(relativePath, source, config, options) {
   const gateOpen = isPactConfig ? matchesAnyGlob(relativePath, settings.pactConfigGlobs) : matchesAnyGlob(relativePath, settings.testGlobs);
   if (!gateOpen) return [];
 
-  const stripped = stripNoise(source, kind);
+  const stripped = stripNoise(source, kind, relativePath);
   const strippedLines = stripped.split('\n');
   const rawLines = source.split('\n');
   const lineCount = source.replace(/\n$/, '').split('\n').length;
+  const lineStarts = lineStartOffsets(stripped);
+  let views = null;
+  let keptLines = null;
   const findings = [];
 
   for (const rule of activeRules(settings)) {
@@ -783,19 +1234,52 @@ function scanContent(relativePath, source, config, options) {
           line: 1,
           detail: rule.describe ? rule.describe(context) : '',
           text: '',
+          occurrences: [''],
+        });
+      }
+      continue;
+    }
+
+    views ??= {
+      code: stripComments(source, kind, 'keep', relativePath) ?? stripped,
+      mask: stripComments(source, kind, 'mask', relativePath) ?? '',
+    };
+    keptLines ??= views.code.split('\n');
+    // What a violation IS, independent of where it sits and of the comments and
+    // layout around it: the code it spans, literals intact, whitespace outside
+    // literals dropped. `introducedFindings` compares these.
+    const identity = (start, end) => normalizeOperand(views.code.slice(start, end), views.mask.slice(start, end));
+
+    if (rule.scope === 'source') {
+      // Every match maps back to the line it starts on. Stripping preserves
+      // newlines, so offsets into the stripped text are offsets into the source.
+      // One finding per line, as the line rules report, carrying every match on it.
+      const byLine = new Map();
+      for (const [start, end] of rule.matchSource(stripped, { kind, config: settings, ...views, relativePath })) {
+        const index = lineAt(lineStarts, start);
+        byLine.set(index, [...(byLine.get(index) || []), identity(start, end)]);
+      }
+      for (const index of [...byLine.keys()].sort((a, b) => a - b)) {
+        findings.push({
+          rule,
+          line: index + 1,
+          detail: '',
+          text: (rawLines[index] || '').trim().slice(0, 120),
+          occurrences: byLine.get(index),
         });
       }
       continue;
     }
 
     for (const [index, line] of strippedLines.entries()) {
-      const context = { kind, config: settings, rawLines, lineIndex: index, relativePath };
+      const context = { kind, config: settings, rawLines, lineIndex: index, relativePath, code: keptLines[index] };
       if (rule.match(line, context)) {
         findings.push({
           rule,
           line: index + 1,
           detail: '',
           text: (rawLines[index] || '').trim().slice(0, 120),
+          occurrences: [identity(lineStarts[index], lineStarts[index] + line.length)],
         });
       }
     }
@@ -897,6 +1381,86 @@ function fragmentsFromPayload(payload) {
       .map((edit) => ({ text: edit.new_string, fragmentOnly: true }));
   }
   return [];
+}
+
+/**
+ * One Edit step applied to `content` the way the Edit tool applies it, or null
+ * when it cannot be (the tool would reject it too).
+ *
+ * Index splicing on purpose: `String.prototype.replace` reads `$&` and `$1` in the
+ * replacement as patterns, and test code is full of template literals.
+ */
+function applyEdit(content, edit) {
+  if (!edit || typeof edit.old_string !== 'string' || typeof edit.new_string !== 'string') return null;
+  if (edit.old_string === '') return content === '' ? edit.new_string : null;
+  if (edit.replace_all === true) {
+    return content.includes(edit.old_string) ? content.split(edit.old_string).join(edit.new_string) : null;
+  }
+  const at = content.indexOf(edit.old_string);
+  if (at === -1) return null;
+  return content.slice(0, at) + edit.new_string + content.slice(at + edit.old_string.length);
+}
+
+/**
+ * The file as it is now and as it will be once this Edit or MultiEdit lands, or
+ * null when that cannot be built.
+ *
+ * An Edit's `new_string` scanned on its own is scanned out of context: a fragment
+ * that sits inside an existing block comment or template literal looks like code,
+ * and a rule that spans the fragment's boundary is invisible. Building the
+ * proposed file gives `--pre` the same view `--post` will have, and lets the
+ * file-scope rules run on edits too. A missing file is an empty one, which is how
+ * the Edit tool creates a file from an empty `old_string`.
+ */
+function proposedEdit(payload, absolutePath) {
+  const input = payload.tool_input || {};
+  let edits = null;
+  if (payload.tool_name === 'Edit') edits = [input];
+  if (payload.tool_name === 'MultiEdit' && Array.isArray(input.edits)) edits = input.edits;
+  if (!edits) return null;
+
+  let before = '';
+  try {
+    before = fs.readFileSync(absolutePath, 'utf8');
+  } catch (error) {
+    if (!error || error.code !== 'ENOENT') return null;
+  }
+
+  let after = before;
+  for (const edit of edits) {
+    after = applyEdit(after, edit);
+    if (after === null) return null;
+  }
+  return { before, after };
+}
+
+/**
+ * Findings in `after` that `before` does not already have.
+ *
+ * `--pre` judges the write in front of it. A violation already sitting in the
+ * untouched part of the file is `--post`'s to report, and blocking an unrelated
+ * edit on it would stop the agent fixing a file one edit at a time. Line numbers
+ * move under an edit, so each occurrence is matched by rule and identity (the
+ * code it spans, comments out, literals in), as a multiset: rewording a comment
+ * beside a violation adds nothing, and a second copy of an existing violation on
+ * the same line still adds one. The one trade this makes is an edit that removes
+ * a violation and writes an identical one elsewhere, which `--post` reports.
+ */
+function introducedFindings(before, after) {
+  const key = (finding, occurrence) => `${finding.rule.id}\u0000${occurrence}`;
+  const existing = new Map();
+  for (const finding of before) {
+    for (const occurrence of finding.occurrences) existing.set(key(finding, occurrence), (existing.get(key(finding, occurrence)) || 0) + 1);
+  }
+  return after.filter((finding) => {
+    let introduced = false;
+    for (const occurrence of finding.occurrences) {
+      const remaining = existing.get(key(finding, occurrence)) || 0;
+      if (remaining === 0) introduced = true;
+      else existing.set(key(finding, occurrence), remaining - 1);
+    }
+    return introduced;
+  });
 }
 
 function scanRoots(globs) {
@@ -1060,6 +1624,15 @@ function main(argv) {
   const relative = path.relative(projectRoot, absolute);
   if (relative.startsWith('..')) return 0;
 
+  const proposed = proposedEdit(payload, absolute);
+  if (proposed) {
+    const scan = (source) => scanContent(relative, source, config, { fragmentOnly: false });
+    const findings = introducedFindings(scan(proposed.before), scan(proposed.after)).map((finding) => ({ ...finding, file: relative }));
+    return report(findings, 'TEA enforcement blocked this write:');
+  }
+
+  // The proposed file could not be built (unreadable file, or an old_string the
+  // Edit tool will reject anyway), so fall back to the fragments on their own.
   const findings = fragmentsFromPayload(payload).flatMap((fragment) =>
     scanContent(relative, fragment.text, config, { fragmentOnly: fragment.fragmentOnly }).map((finding) => ({
       ...finding,
@@ -1091,11 +1664,14 @@ module.exports = {
   matchesAnyGlob,
   kindForPath,
   stripNoise,
+  stripComments,
   commentIndex,
   integrityWarning,
   scanContent,
   scanFile,
   targetsFromPayload,
   fragmentsFromPayload,
+  proposedEdit,
+  introducedFindings,
   main,
 };
